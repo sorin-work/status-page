@@ -1,0 +1,27 @@
+# Binaries
+/bin/
+/statuspage
+/demotarget
+*.exe
+*.test
+
+# Coverage
+*.out
+coverage.html
+
+# Local data
+/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editors
+.idea/
+.vscode/
+*.swp
+.DS_Store
