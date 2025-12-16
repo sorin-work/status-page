@@ -68,7 +68,12 @@ func (c *NetChecker) checkHTTP(ctx context.Context, m Monitor) Result {
 	res.Latency = time.Since(start)
 	res.StatusCode = resp.StatusCode
 
-	if resp.StatusCode < 200 || resp.StatusCode > 399 {
+	if m.ExpectedStatus != 0 {
+		if resp.StatusCode != m.ExpectedStatus {
+			res.Error = fmt.Sprintf("expected status %d, got %d", m.ExpectedStatus, resp.StatusCode)
+			return res
+		}
+	} else if resp.StatusCode < 200 || resp.StatusCode > 399 {
 		res.Error = fmt.Sprintf("unexpected status %d", resp.StatusCode)
 		return res
 	}
