@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -64,8 +65,12 @@ func (c *NetChecker) checkHTTP(ctx context.Context, m Monitor) Result {
 		return res
 	}
 	defer resp.Body.Close()
-	_, _ = io.Copy(io.Discard, resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	res.Latency = time.Since(start)
+	if err != nil {
+		res.Error = "reading response: " + err.Error()
+		return res
+	}
 	res.StatusCode = resp.StatusCode
 
 	if m.ExpectedStatus != 0 {
@@ -75,6 +80,10 @@ func (c *NetChecker) checkHTTP(ctx context.Context, m Monitor) Result {
 		}
 	} else if resp.StatusCode < 200 || resp.StatusCode > 399 {
 		res.Error = fmt.Sprintf("unexpected status %d", resp.StatusCode)
+		return res
+	}
+	if m.Keyword != "" && !bytes.Contains(body, []byte(m.Keyword)) {
+		res.Error = fmt.Sprintf("keyword %q not found in response", m.Keyword)
 		return res
 	}
 	res.Up = true
