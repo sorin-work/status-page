@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
 )
@@ -18,6 +19,7 @@ type Checker interface {
 // NetChecker performs real HTTP and TCP checks.
 type NetChecker struct {
 	Client    *http.Client
+	Dialer    *net.Dialer
 	UserAgent string
 	Now       func() time.Time
 }
@@ -26,6 +28,7 @@ type NetChecker struct {
 func NewChecker() *NetChecker {
 	return &NetChecker{
 		Client:    &http.Client{},
+		Dialer:    &net.Dialer{},
 		UserAgent: "status-page/0.1",
 		Now:       time.Now,
 	}
@@ -36,6 +39,8 @@ func (c *NetChecker) Check(ctx context.Context, m Monitor) Result {
 	switch m.Type {
 	case TypeHTTP:
 		return c.checkHTTP(ctx, m)
+	case TypeTCP:
+		return c.checkTCP(ctx, m)
 	default:
 		return Result{MonitorID: m.ID, CheckedAt: c.Now().UTC(), Error: fmt.Sprintf("unsupported monitor type %q", m.Type)}
 	}
@@ -86,6 +91,27 @@ func (c *NetChecker) checkHTTP(ctx context.Context, m Monitor) Result {
 		res.Error = fmt.Sprintf("keyword %q not found in response", m.Keyword)
 		return res
 	}
+	res.Up = true
+	return res
+}
+
+func (c *NetChecker) checkTCP(ctx context.Context, m Monitor) Result {
+	res := Result{MonitorID: m.ID, CheckedAt: c.Now().UTC()}
+	ctx, cancel := context.WithTimeout(ctx, m.Timeout)
+	defer cancel()
+
+	start := time.Now()
+	conn, err := c.Dialer.DialContext(ctx, "tcp", m.Target)
+	res.Latency = time.Since(start)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			res.Error = fmt.Sprintf("timed out after %s", m.Timeout)
+		} else {
+			res.Error = err.Error()
+		}
+		return res
+	}
+	_ = conn.Close()
 	res.Up = true
 	return res
 }
