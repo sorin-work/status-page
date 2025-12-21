@@ -62,11 +62,7 @@ func (c *NetChecker) checkHTTP(ctx context.Context, m Monitor) Result {
 	resp, err := c.Client.Do(req)
 	if err != nil {
 		res.Latency = time.Since(start)
-		if errors.Is(err, context.DeadlineExceeded) {
-			res.Error = fmt.Sprintf("timed out after %s", m.Timeout)
-		} else {
-			res.Error = err.Error()
-		}
+		res.Error = describeError(err, m.Timeout)
 		return res
 	}
 	defer resp.Body.Close()
@@ -104,14 +100,19 @@ func (c *NetChecker) checkTCP(ctx context.Context, m Monitor) Result {
 	conn, err := c.Dialer.DialContext(ctx, "tcp", m.Target)
 	res.Latency = time.Since(start)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			res.Error = fmt.Sprintf("timed out after %s", m.Timeout)
-		} else {
-			res.Error = err.Error()
-		}
+		res.Error = describeError(err, m.Timeout)
 		return res
 	}
 	_ = conn.Close()
 	res.Up = true
 	return res
+}
+
+// describeError turns a transport error into a short message for the
+// check history.
+func describeError(err error, timeout time.Duration) string {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Sprintf("timed out after %s", timeout)
+	}
+	return err.Error()
 }
