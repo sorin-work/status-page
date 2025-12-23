@@ -108,3 +108,18 @@ func TestHTTPCheckConnectionRefused(t *testing.T) {
 		t.Fatalf("expected failure: %+v", res)
 	}
 }
+
+func TestHTTPCheckKeywordBeyondLimit(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(strings.Repeat(".", MaxBodySize)))
+		_, _ = w.Write([]byte("needle"))
+	}))
+	defer srv.Close()
+
+	m := httpMonitor(srv.URL)
+	m.Keyword = "needle"
+	res := NewChecker().Check(context.Background(), m)
+	if res.Up {
+		t.Fatal("keyword after the body limit should not match")
+	}
+}

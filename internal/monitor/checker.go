@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+// MaxBodySize is how much of an HTTP response is read when looking for
+// the keyword. Anything after it is ignored.
+const MaxBodySize = 1 << 20
+
 // Checker runs a single check for a monitor.
 type Checker interface {
 	Check(ctx context.Context, m Monitor) Result
@@ -66,7 +70,7 @@ func (c *NetChecker) checkHTTP(ctx context.Context, m Monitor) Result {
 		return res
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, MaxBodySize))
 	res.Latency = time.Since(start)
 	if err != nil {
 		res.Error = "reading response: " + err.Error()
