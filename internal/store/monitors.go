@@ -65,3 +65,68 @@ func (s *Store) GetMonitor(ctx context.Context, id int64) (monitor.Monitor, erro
 	}
 	return m, err
 }
+
+// ListMonitors returns every monitor ordered by name.
+func (s *Store) ListMonitors(ctx context.Context) ([]monitor.Monitor, error) {
+	return s.queryMonitors(ctx, `SELECT `+monitorColumns+` FROM monitors ORDER BY name COLLATE NOCASE, id`)
+}
+
+// ListActiveMonitors returns the monitors that are not paused.
+func (s *Store) ListActiveMonitors(ctx context.Context) ([]monitor.Monitor, error) {
+	return s.queryMonitors(ctx, `SELECT `+monitorColumns+` FROM monitors WHERE paused = 0 ORDER BY id`)
+}
+
+func (s *Store) queryMonitors(ctx context.Context, query string, args ...any) ([]monitor.Monitor, error) {
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []monitor.Monitor
+	for rows.Next() {
+		m, err := scanMonitor(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+// UpdateMonitor saves the editable fields of m. The status is left alone.
+func (s *Store) UpdateMonitor(ctx context.Context, m monitor.Monitor) (monitor.Monitor, error) {
+	now := s.now().UTC().Truncate(time.Second)
+	res, err := s.db.ExecContext(ctx, `UPDATE monitors SET
+		name = ?, type = ?, target = ?, interval_seconds = ?, timeout_seconds = ?,
+		expected_status = ?, keyword = ?, retries = ?, paused = ?, updated_at = ?
+		WHERE id = ?`,
+		m.Name, string(m.Type), m.Target, int64(m.Interval/time.Second), int64(m.Timeout/time.Second),
+		m.ExpectedStatus, m.Keyword, m.Retries, m.Paused, now.Unix(), m.ID)
+	if err != nil {
+		return monitor.Monitor{}, err
+	}
+	if err := expectOneRow(res); err != nil {
+		return monitor.Monitor{}, err
+	}
+	return s.GetMonitor(ctx, m.ID)
+}
+
+// DeleteMonitor removes a monitor and its check history.
+func (s *Store) DeleteMonitor(ctx context.Context, id int64) error {
+	res, err := s.db.ExecContext(ctx, `DELETE FROM monitors WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	return expectOneRow(res)
+}
+
+func expectOneRow(res sql.Result) error {
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
