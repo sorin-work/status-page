@@ -130,3 +130,12 @@ func expectOneRow(res sql.Result) error {
 	}
 	return nil
 }
+
+// SetMonitorStatus records the latest known state of a monitor.
+func (s *Store) SetMonitorStatus(ctx context.Context, id int64, status monitor.Status) error {
+	res, err := s.db.ExecContext(ctx, `UPDATE monitors SET status = ? WHERE id = ?`, string(status), id)
+	if err != nil {
+		return err
+	}
+	return expectOneRow(res)
+}

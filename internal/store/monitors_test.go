@@ -133,3 +133,22 @@ func TestDeleteMonitor(t *testing.T) {
 		t.Errorf("second delete: expected ErrNotFound, got %v", err)
 	}
 }
+
+func TestSetMonitorStatus(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	m, err := s.CreateMonitor(ctx, sampleMonitor("api"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetMonitorStatus(ctx, m.ID, monitor.StatusDown); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := s.GetMonitor(ctx, m.ID)
+	if got.Status != monitor.StatusDown {
+		t.Errorf("status = %q", got.Status)
+	}
+	if err := s.SetMonitorStatus(ctx, 404, monitor.StatusUp); !errors.Is(err, ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
