@@ -30,8 +30,16 @@ type Scheduler struct {
 	sem chan struct{}
 	wg  sync.WaitGroup
 
-	mu      sync.Mutex
-	lastRun map[int64]time.Time
+	mu    sync.Mutex
+	state map[int64]*monitorState
+}
+
+// monitorState is what the scheduler remembers about a monitor between
+// checks.
+type monitorState struct {
+	lastRun  time.Time
+	failures int
+	status   monitor.Status
 }
 
 // DefaultWorkers is how many checks may run at the same time.
@@ -52,7 +60,7 @@ func New(store Store, checker monitor.Checker, workers int, logger *slog.Logger)
 		now:     time.Now,
 		Tick:    time.Second,
 		sem:     make(chan struct{}, workers),
-		lastRun: map[int64]time.Time{},
+		state:   map[int64]*monitorState{},
 	}
 }
 
@@ -107,25 +115,47 @@ func (s *Scheduler) RunDue(ctx context.Context) {
 func (s *Scheduler) isDue(m monitor.Monitor, now time.Time) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	last, ok := s.lastRun[m.ID]
-	return !ok || !now.Before(last.Add(m.Interval))
+	st, ok := s.state[m.ID]
+	return !ok || !now.Before(st.lastRun.Add(m.Interval))
 }
 
 func (s *Scheduler) runCheck(ctx context.Context, m monitor.Monitor) {
 	res := s.checker.Check(ctx, m)
-	s.mu.Lock()
-	s.lastRun[m.ID] = s.now()
-	s.mu.Unlock()
 	if err := s.store.RecordCheck(ctx, res); err != nil {
 		s.logger.Error("record check", "monitor", m.ID, "err", err)
 	}
-	status := monitor.StatusDown
-	if res.Up {
-		status = monitor.StatusUp
-	}
-	if status != m.Status {
-		if err := s.store.SetMonitorStatus(ctx, m.ID, status); err != nil {
+
+	from, to := s.apply(m, res)
+	if from != to {
+		s.logger.Info("monitor status changed", "monitor", m.ID, "name", m.Name, "from", from, "to", to, "error", res.Error)
+		if err := s.store.SetMonitorStatus(ctx, m.ID, to); err != nil {
 			s.logger.Error("set status", "monitor", m.ID, "err", err)
 		}
 	}
+}
+
+// apply folds a check result into the monitor state and returns the status
+// before and after. A failing monitor is only marked down once it has used
+// up its retries.
+func (s *Scheduler) apply(m monitor.Monitor, res monitor.Result) (from, to monitor.Status) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	st, ok := s.state[m.ID]
+	if !ok {
+		st = &monitorState{status: m.Status}
+		s.state[m.ID] = st
+	}
+	st.lastRun = s.now()
+	from = st.status
+
+	if res.Up {
+		st.failures = 0
+		st.status = monitor.StatusUp
+		return from, st.status
+	}
+	st.failures++
+	if st.failures >= m.Retries {
+		st.status = monitor.StatusDown
+	}
+	return from, st.status
 }
