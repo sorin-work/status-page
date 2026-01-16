@@ -17,6 +17,14 @@ type Store interface {
 	SetMonitorStatus(ctx context.Context, id int64, status monitor.Status) error
 }
 
+// Transition describes a monitor changing state.
+type Transition struct {
+	Monitor monitor.Monitor
+	From    monitor.Status
+	To      monitor.Status
+	Result  monitor.Result
+}
+
 // Scheduler decides which monitors are due and runs their checks.
 type Scheduler struct {
 	store   Store
@@ -26,6 +34,8 @@ type Scheduler struct {
 
 	// Tick is how often the scheduler looks for due monitors.
 	Tick time.Duration
+	// OnTransition, if set, is called after a monitor changes state.
+	OnTransition func(ctx context.Context, t Transition)
 
 	sem chan struct{}
 	wg  sync.WaitGroup
@@ -130,6 +140,9 @@ func (s *Scheduler) runCheck(ctx context.Context, m monitor.Monitor) {
 		s.logger.Info("monitor status changed", "monitor", m.ID, "name", m.Name, "from", from, "to", to, "error", res.Error)
 		if err := s.store.SetMonitorStatus(ctx, m.ID, to); err != nil {
 			s.logger.Error("set status", "monitor", m.ID, "err", err)
+		}
+		if s.OnTransition != nil {
+			s.OnTransition(ctx, Transition{Monitor: m, From: from, To: to, Result: res})
 		}
 	}
 }
