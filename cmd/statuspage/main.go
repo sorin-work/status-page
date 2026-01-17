@@ -12,6 +12,9 @@ import (
 	"time"
 
 	"github.com/sorin-work/status-page/internal/config"
+	"github.com/sorin-work/status-page/internal/monitor"
+	"github.com/sorin-work/status-page/internal/scheduler"
+	"github.com/sorin-work/status-page/internal/store"
 )
 
 func main() {
@@ -31,6 +34,22 @@ func run() error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	st, err := store.Open(cfg.DatabasePath)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	if err := st.Migrate(ctx); err != nil {
+		return err
+	}
+
+	sched := scheduler.New(st, monitor.NewChecker(), cfg.CheckWorkers, logger.With("component", "scheduler"))
+	schedDone := make(chan struct{})
+	go func() {
+		sched.Run(ctx)
+		close(schedDone)
+	}()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -65,7 +84,10 @@ func run() error {
 	logger.Info("shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
-	return srv.Shutdown(shutdownCtx)
+	err = srv.Shutdown(shutdownCtx)
+	stop()
+	<-schedDone
+	return err
 }
 
 func newLogger(level string) *slog.Logger {

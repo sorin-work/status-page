@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -17,6 +18,8 @@ type Config struct {
 	LogLevel string
 	// ShutdownTimeout bounds how long a graceful shutdown may take.
 	ShutdownTimeout time.Duration
+	// CheckWorkers is how many checks may run at the same time.
+	CheckWorkers int
 }
 
 // Load builds a Config from the given lookup function, usually os.Getenv.
@@ -26,6 +29,7 @@ func Load(getenv func(string) string) (Config, error) {
 		DatabasePath:    "data/status.db",
 		LogLevel:        "info",
 		ShutdownTimeout: 10 * time.Second,
+		CheckWorkers:    8,
 	}
 
 	if v := strings.TrimSpace(getenv("LISTEN_ADDR")); v != "" {
@@ -49,6 +53,13 @@ func Load(getenv func(string) string) (Config, error) {
 			return Config{}, fmt.Errorf("SHUTDOWN_TIMEOUT: invalid duration %q", v)
 		}
 		cfg.ShutdownTimeout = d
+	}
+	if v := strings.TrimSpace(getenv("CHECK_WORKERS")); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 256 {
+			return Config{}, fmt.Errorf("CHECK_WORKERS: expected a number between 1 and 256, got %q", v)
+		}
+		cfg.CheckWorkers = n
 	}
 	return cfg, nil
 }
