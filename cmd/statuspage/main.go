@@ -45,6 +45,7 @@ func run() error {
 	}
 
 	sched := scheduler.New(st, monitor.NewChecker(), cfg.CheckWorkers, logger.With("component", "scheduler"))
+	sched.Jitter = 10 * time.Second
 	schedDone := make(chan struct{})
 	go func() {
 		sched.Run(ctx)

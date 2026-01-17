@@ -177,6 +177,26 @@ func TestDownWithoutRetries(t *testing.T) {
 	}
 }
 
+func TestJitterDelaysFirstChecks(t *testing.T) {
+	var monitors []monitor.Monitor
+	for i := int64(1); i <= 20; i++ {
+		monitors = append(monitors, mon(i, time.Hour, 0))
+	}
+	store := &fakeStore{monitors: monitors}
+	s, clk := newTestScheduler(store, &scriptedChecker{}, 4)
+	s.Jitter = 10 * time.Second
+
+	runOnce(s)
+	if n := store.checkCount(); n == 20 {
+		t.Fatal("all monitors ran immediately despite jitter")
+	}
+	clk.advance(10 * time.Second)
+	runOnce(s)
+	if n := store.checkCount(); n != 20 {
+		t.Fatalf("after the jitter window %d of 20 monitors ran", n)
+	}
+}
+
 type slowChecker struct {
 	active, peak atomic.Int32
 }

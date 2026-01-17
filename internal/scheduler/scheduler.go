@@ -4,6 +4,7 @@ package scheduler
 import (
 	"context"
 	"log/slog"
+	"math/rand/v2"
 	"sync"
 	"time"
 
@@ -34,6 +35,9 @@ type Scheduler struct {
 
 	// Tick is how often the scheduler looks for due monitors.
 	Tick time.Duration
+	// Jitter spreads the first check of each monitor over a random delay
+	// of up to this long, so a restart does not fire every check at once.
+	Jitter time.Duration
 	// OnTransition, if set, is called after a monitor changes state.
 	OnTransition func(ctx context.Context, t Transition)
 
@@ -126,7 +130,17 @@ func (s *Scheduler) isDue(m monitor.Monitor, now time.Time) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	st, ok := s.state[m.ID]
-	return !ok || !now.Before(st.lastRun.Add(m.Interval))
+	if !ok {
+		if s.Jitter <= 0 {
+			return true
+		}
+		// Pretend the last run happened so that the first one lands
+		// somewhere inside the jitter window.
+		delay := time.Duration(rand.Int64N(int64(s.Jitter)))
+		s.state[m.ID] = &monitorState{status: m.Status, lastRun: now.Add(delay - m.Interval)}
+		return delay == 0
+	}
+	return !now.Before(st.lastRun.Add(m.Interval))
 }
 
 func (s *Scheduler) runCheck(ctx context.Context, m monitor.Monitor) {
