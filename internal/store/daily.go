@@ -1,0 +1,52 @@
+package store
+
+import (
+	"context"
+	"time"
+)
+
+// DayLayout is the format of the day column in daily_stats.
+const DayLayout = "2006-01-02"
+
+// Day returns the UTC calendar day of t as stored in daily_stats.
+func Day(t time.Time) string {
+	return t.UTC().Format(DayLayout)
+}
+
+// DailyStat aggregates the checks of one monitor on one UTC day.
+type DailyStat struct {
+	MonitorID    int64
+	Day          string
+	Total        int
+	Up           int
+	LatencySumMS int64
+}
+
+// AvgLatency returns the mean response time of the day.
+func (d DailyStat) AvgLatency() time.Duration {
+	if d.Total == 0 {
+		return 0
+	}
+	return time.Duration(d.LatencySumMS/int64(d.Total)) * time.Millisecond
+}
+
+// DailyStats returns the rollups of a monitor between the two days
+// (inclusive), oldest first. Days without checks are not returned.
+func (s *Store) DailyStats(ctx context.Context, monitorID int64, from, to time.Time) ([]DailyStat, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT monitor_id, day, total, up, latency_sum_ms
+		FROM daily_stats WHERE monitor_id = ? AND day >= ? AND day <= ?
+		ORDER BY day`, monitorID, Day(from), Day(to))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []DailyStat
+	for rows.Next() {
+		var d DailyStat
+		if err := rows.Scan(&d.MonitorID, &d.Day, &d.Total, &d.Up, &d.LatencySumMS); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}

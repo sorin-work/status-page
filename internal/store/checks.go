@@ -16,11 +16,33 @@ func (s *Store) RecordCheck(ctx context.Context, r monitor.Result) error {
 	if len(errMsg) > MaxErrorLength {
 		errMsg = errMsg[:MaxErrorLength]
 	}
-	_, err := s.db.ExecContext(ctx, `INSERT INTO checks
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, `INSERT INTO checks
 		(monitor_id, checked_at, up, latency_ms, status_code, error)
 		VALUES (?, ?, ?, ?, ?, ?)`,
-		r.MonitorID, r.CheckedAt.Unix(), r.Up, r.Latency.Milliseconds(), r.StatusCode, errMsg)
-	return err
+		r.MonitorID, r.CheckedAt.Unix(), r.Up, r.Latency.Milliseconds(), r.StatusCode, errMsg); err != nil {
+		return err
+	}
+
+	up := 0
+	if r.Up {
+		up = 1
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO daily_stats (monitor_id, day, total, up, latency_sum_ms)
+		VALUES (?, ?, 1, ?, ?)
+		ON CONFLICT (monitor_id, day) DO UPDATE SET
+			total = total + 1,
+			up = up + excluded.up,
+			latency_sum_ms = latency_sum_ms + excluded.latency_sum_ms`,
+		r.MonitorID, Day(r.CheckedAt), up, r.Latency.Milliseconds()); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // ListChecks returns the check history of a monitor, newest first.
