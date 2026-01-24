@@ -101,3 +101,22 @@ func TestDeletingMonitorRemovesChecks(t *testing.T) {
 		t.Errorf("CountChecks after delete = %d, %v", n, err)
 	}
 }
+
+func TestCountChecksSince(t *testing.T) {
+	s := newTestStore(t)
+	m := createMonitor(t, s, "api")
+	start := time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC)
+	recordChecks(t, s, m.ID, start, time.Hour, false, true, true, false, true)
+
+	up, total, err := s.CountChecksSince(context.Background(), m.ID, start.Add(2*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if up != 2 || total != 3 {
+		t.Errorf("up=%d total=%d, want 2/3", up, total)
+	}
+	up, total, err = s.CountChecksSince(context.Background(), m.ID, start.Add(10*time.Hour))
+	if err != nil || up != 0 || total != 0 {
+		t.Errorf("empty range: up=%d total=%d err=%v", up, total, err)
+	}
+}

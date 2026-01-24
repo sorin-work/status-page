@@ -78,3 +78,11 @@ func (s *Store) CountChecks(ctx context.Context, monitorID int64) (int, error) {
 	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM checks WHERE monitor_id = ?`, monitorID).Scan(&n)
 	return n, err
 }
+
+// CountChecksSince returns how many checks of a monitor ran at or after
+// since, and how many of them succeeded.
+func (s *Store) CountChecksSince(ctx context.Context, monitorID int64, since time.Time) (up, total int, err error) {
+	err = s.db.QueryRowContext(ctx, `SELECT COALESCE(SUM(up), 0), COUNT(*)
+		FROM checks WHERE monitor_id = ? AND checked_at >= ?`, monitorID, since.Unix()).Scan(&up, &total)
+	return up, total, err
+}
