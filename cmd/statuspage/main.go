@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sorin-work/status-page/internal/auth"
 	"github.com/sorin-work/status-page/internal/config"
 	"github.com/sorin-work/status-page/internal/monitor"
 	"github.com/sorin-work/status-page/internal/scheduler"
@@ -41,6 +43,10 @@ func run() error {
 	}
 	defer st.Close()
 	if err := st.Migrate(ctx); err != nil {
+		return err
+	}
+
+	if err := ensureAdmin(ctx, st, cfg, logger); err != nil {
 		return err
 	}
 
@@ -89,6 +95,38 @@ func run() error {
 	stop()
 	<-schedDone
 	return err
+}
+
+// ensureAdmin creates the first admin account when there is none. Without
+// ADMIN_PASSWORD a random password is generated and logged once.
+func ensureAdmin(ctx context.Context, st *store.Store, cfg config.Config, logger *slog.Logger) error {
+	n, err := st.CountUsers(ctx)
+	if err != nil || n > 0 {
+		return err
+	}
+	password := cfg.AdminPassword
+	generated := password == ""
+	if generated {
+		token, err := auth.NewToken()
+		if err != nil {
+			return err
+		}
+		password = token[:16]
+	}
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		return err
+	}
+	if _, err := st.CreateUser(ctx, cfg.AdminUsername, hash); err != nil {
+		return fmt.Errorf("create admin: %w", err)
+	}
+	if generated {
+		logger.Warn("created admin account with a generated password; set ADMIN_PASSWORD to choose one",
+			"username", cfg.AdminUsername, "password", password)
+	} else {
+		logger.Info("created admin account", "username", cfg.AdminUsername)
+	}
+	return nil
 }
 
 func newLogger(level string) *slog.Logger {

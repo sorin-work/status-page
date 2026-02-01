@@ -20,6 +20,10 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	// CheckWorkers is how many checks may run at the same time.
 	CheckWorkers int
+	// AdminUsername and AdminPassword create the first admin account
+	// when the database has none.
+	AdminUsername string
+	AdminPassword string
 }
 
 // Load builds a Config from the given lookup function, usually os.Getenv.
@@ -30,6 +34,7 @@ func Load(getenv func(string) string) (Config, error) {
 		LogLevel:        "info",
 		ShutdownTimeout: 10 * time.Second,
 		CheckWorkers:    8,
+		AdminUsername:   "admin",
 	}
 
 	if v := strings.TrimSpace(getenv("LISTEN_ADDR")); v != "" {
@@ -53,6 +58,13 @@ func Load(getenv func(string) string) (Config, error) {
 			return Config{}, fmt.Errorf("SHUTDOWN_TIMEOUT: invalid duration %q", v)
 		}
 		cfg.ShutdownTimeout = d
+	}
+	if v := strings.TrimSpace(getenv("ADMIN_USERNAME")); v != "" {
+		cfg.AdminUsername = v
+	}
+	cfg.AdminPassword = getenv("ADMIN_PASSWORD")
+	if cfg.AdminPassword != "" && len(cfg.AdminPassword) < 8 {
+		return Config{}, fmt.Errorf("ADMIN_PASSWORD: must be at least 8 characters")
 	}
 	if v := strings.TrimSpace(getenv("CHECK_WORKERS")); v != "" {
 		n, err := strconv.Atoi(v)

@@ -26,6 +26,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.ShutdownTimeout != 10*time.Second {
 		t.Errorf("ShutdownTimeout = %v", cfg.ShutdownTimeout)
 	}
+	if cfg.AdminUsername != "admin" || cfg.AdminPassword != "" {
+		t.Errorf("admin = %q / %q", cfg.AdminUsername, cfg.AdminPassword)
+	}
 }
 
 func TestLoadOverrides(t *testing.T) {
@@ -51,6 +54,7 @@ func TestLoadInvalid(t *testing.T) {
 		"negative timeout": {"SHUTDOWN_TIMEOUT": "-1s"},
 		"workers zero":     {"CHECK_WORKERS": "0"},
 		"workers text":     {"CHECK_WORKERS": "many"},
+		"short password":   {"ADMIN_PASSWORD": "short"},
 	}
 	for name, m := range cases {
 		t.Run(name, func(t *testing.T) {
