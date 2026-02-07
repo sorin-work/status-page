@@ -3,10 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{.Title}}</title>
+  <title>{{if .Title}}{{.Title}} · {{end}}{{.Site}}</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <header class="site-header">
+    <div class="inner">
+      <a class="brand" href="/">{{.Site}}</a>
+    </div>
+  </header>
   <main class="container">
     {{template "content" .}}
   </main>

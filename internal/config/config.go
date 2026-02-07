@@ -24,6 +24,8 @@ type Config struct {
 	// when the database has none.
 	AdminUsername string
 	AdminPassword string
+	// SiteTitle is shown in the header of every page.
+	SiteTitle string
 }
 
 // Load builds a Config from the given lookup function, usually os.Getenv.
@@ -35,6 +37,7 @@ func Load(getenv func(string) string) (Config, error) {
 		ShutdownTimeout: 10 * time.Second,
 		CheckWorkers:    8,
 		AdminUsername:   "admin",
+		SiteTitle:       "Status",
 	}
 
 	if v := strings.TrimSpace(getenv("LISTEN_ADDR")); v != "" {
@@ -58,6 +61,9 @@ func Load(getenv func(string) string) (Config, error) {
 			return Config{}, fmt.Errorf("SHUTDOWN_TIMEOUT: invalid duration %q", v)
 		}
 		cfg.ShutdownTimeout = d
+	}
+	if v := strings.TrimSpace(getenv("SITE_TITLE")); v != "" {
+		cfg.SiteTitle = v
 	}
 	if v := strings.TrimSpace(getenv("ADMIN_USERNAME")); v != "" {
 		cfg.AdminUsername = v

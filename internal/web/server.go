@@ -76,5 +76,5 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
-	s.render(w, r, http.StatusOK, "home", page{Title: s.site})
+	s.render(w, r, http.StatusOK, "home", page{})
 }

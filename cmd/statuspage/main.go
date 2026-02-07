@@ -60,8 +60,9 @@ func run() error {
 	}()
 
 	handler, err := web.New(web.Options{
-		Store:  st,
-		Logger: logger.With("component", "web"),
+		Store:     st,
+		Logger:    logger.With("component", "web"),
+		SiteTitle: cfg.SiteTitle,
 	})
 	if err != nil {
 		return err
