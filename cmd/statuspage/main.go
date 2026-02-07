@@ -17,6 +17,7 @@ import (
 	"github.com/sorin-work/status-page/internal/monitor"
 	"github.com/sorin-work/status-page/internal/scheduler"
 	"github.com/sorin-work/status-page/internal/store"
+	"github.com/sorin-work/status-page/internal/web"
 )
 
 func main() {
@@ -58,15 +59,17 @@ func run() error {
 		close(schedDone)
 	}()
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = w.Write([]byte("ok\n"))
+	handler, err := web.New(web.Options{
+		Store:  st,
+		Logger: logger.With("component", "web"),
 	})
+	if err != nil {
+		return err
+	}
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           mux,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      30 * time.Second,
