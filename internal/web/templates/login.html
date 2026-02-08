@@ -1,0 +1,18 @@
+{{define "content"}}
+<div class="login card">
+  <h1>Log in</h1>
+  {{with .Data.Error}}<div class="alert">{{.}}</div>{{end}}
+  <form method="post" action="/admin/login" class="stacked">
+    <input type="hidden" name="next" value="{{.Data.Next}}">
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" value="{{.Data.Username}}" autocomplete="username" required autofocus>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit">Log in</button>
+  </form>
+</div>
+{{end}}

@@ -10,6 +10,17 @@
   <header class="site-header">
     <div class="inner">
       <a class="brand" href="/">{{.Site}}</a>
+      {{if .User}}
+      <nav class="nav">
+        <a href="/admin"{{if eq .Nav "monitors"}} class="active"{{end}}>Monitors</a>
+      </nav>
+      <div class="user-menu">
+        <span>{{.User.Username}}</span>
+        <form method="post" action="/admin/logout" class="inline">
+          <button type="submit" class="link">Log out</button>
+        </form>
+      </div>
+      {{end}}
     </div>
   </header>
   <main class="container">

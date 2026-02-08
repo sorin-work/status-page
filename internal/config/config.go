@@ -26,6 +26,10 @@ type Config struct {
 	AdminPassword string
 	// SiteTitle is shown in the header of every page.
 	SiteTitle string
+	// SessionTTL is how long an admin stays logged in.
+	SessionTTL time.Duration
+	// CookieSecure marks the session cookie as HTTPS only.
+	CookieSecure bool
 }
 
 // Load builds a Config from the given lookup function, usually os.Getenv.
@@ -38,6 +42,7 @@ func Load(getenv func(string) string) (Config, error) {
 		CheckWorkers:    8,
 		AdminUsername:   "admin",
 		SiteTitle:       "Status",
+		SessionTTL:      7 * 24 * time.Hour,
 	}
 
 	if v := strings.TrimSpace(getenv("LISTEN_ADDR")); v != "" {
@@ -72,6 +77,20 @@ func Load(getenv func(string) string) (Config, error) {
 	if cfg.AdminPassword != "" && len(cfg.AdminPassword) < 8 {
 		return Config{}, fmt.Errorf("ADMIN_PASSWORD: must be at least 8 characters")
 	}
+	if v := strings.TrimSpace(getenv("SESSION_TTL")); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil || d < time.Minute {
+			return Config{}, fmt.Errorf("SESSION_TTL: expected a duration of at least 1m, got %q", v)
+		}
+		cfg.SessionTTL = d
+	}
+	if v := getenv("COOKIE_SECURE"); v != "" {
+		b, err := parseBool("COOKIE_SECURE", v)
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.CookieSecure = b
+	}
 	if v := strings.TrimSpace(getenv("CHECK_WORKERS")); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 || n > 256 {
@@ -80,4 +99,13 @@ func Load(getenv func(string) string) (Config, error) {
 		cfg.CheckWorkers = n
 	}
 	return cfg, nil
+}
+
+// parseBool accepts the usual spellings of true and false.
+func parseBool(name, v string) (bool, error) {
+	b, err := strconv.ParseBool(strings.TrimSpace(v))
+	if err != nil {
+		return false, fmt.Errorf("%s: expected true or false, got %q", name, v)
+	}
+	return b, nil
 }

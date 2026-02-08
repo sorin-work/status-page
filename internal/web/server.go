@@ -16,6 +16,10 @@ type Options struct {
 	Logger    *slog.Logger
 	SiteTitle string
 	Now       func() time.Time
+	// SessionTTL is how long a login lasts.
+	SessionTTL time.Duration
+	// CookieSecure sets the Secure flag on the session cookie.
+	CookieSecure bool
 }
 
 // Server is the HTTP handler of the application.
@@ -26,6 +30,9 @@ type Server struct {
 	now    func() time.Time
 	tmpl   *templates
 	mux    *http.ServeMux
+
+	sessionTTL   time.Duration
+	cookieSecure bool
 }
 
 // New builds a Server and registers its routes.
@@ -36,6 +43,9 @@ func New(opts Options) (*Server, error) {
 	if opts.Now == nil {
 		opts.Now = time.Now
 	}
+	if opts.SessionTTL <= 0 {
+		opts.SessionTTL = 7 * 24 * time.Hour
+	}
 	if opts.SiteTitle == "" {
 		opts.SiteTitle = "Status"
 	}
@@ -45,6 +55,9 @@ func New(opts Options) (*Server, error) {
 		site:   opts.SiteTitle,
 		now:    opts.Now,
 		mux:    http.NewServeMux(),
+
+		sessionTTL:   opts.SessionTTL,
+		cookieSecure: opts.CookieSecure,
 	}
 	tmpl, err := loadTemplates(s.funcs())
 	if err != nil {
@@ -56,13 +69,18 @@ func New(opts Options) (*Server, error) {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
+	s.withSession(s.mux).ServeHTTP(w, r)
 }
 
 func (s *Server) routes() {
 	s.mux.Handle("GET /static/", http.StripPrefix("/static/", staticHandler()))
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /{$}", s.handleHome)
+
+	s.mux.HandleFunc("GET /admin/login", s.handleLoginForm)
+	s.mux.HandleFunc("POST /admin/login", s.handleLogin)
+	s.mux.HandleFunc("POST /admin/logout", s.handleLogout)
+	s.mux.Handle("GET /admin", s.requireAdmin(http.HandlerFunc(s.handleDashboard)))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
