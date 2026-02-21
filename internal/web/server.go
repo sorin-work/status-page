@@ -79,8 +79,8 @@ func (s *Server) routes() {
 
 	s.mux.HandleFunc("GET /admin/login", s.handleLoginForm)
 	s.mux.HandleFunc("POST /admin/login", s.handleLogin)
-	s.mux.HandleFunc("POST /admin/logout", s.handleLogout)
-	s.mux.Handle("GET /admin", s.requireAdmin(http.HandlerFunc(s.handleDashboard)))
+	s.mux.Handle("POST /admin/logout", s.admin(s.handleLogout))
+	s.mux.Handle("GET /admin", s.admin(s.handleDashboard))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {

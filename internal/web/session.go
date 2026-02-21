@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"crypto/subtle"
 	"errors"
 	"net/http"
 	"net/url"
@@ -36,6 +37,30 @@ func (s *Server) withSession(next http.Handler) http.Handler {
 				s.serverError(w, r, err)
 				return
 			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// admin wraps handlers of the admin area: it requires a session and, for
+// anything but GET, a matching CSRF token in the form.
+func (s *Server) admin(h http.HandlerFunc) http.Handler {
+	return s.requireAdmin(s.checkCSRF(h))
+}
+
+// checkCSRF rejects state-changing requests that do not carry the CSRF
+// token of the current session.
+func (s *Server) checkCSRF(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet || r.Method == http.MethodHead {
+			next.ServeHTTP(w, r)
+			return
+		}
+		sess := currentSession(r)
+		token := r.PostFormValue("csrf")
+		if sess == nil || token == "" || subtle.ConstantTimeCompare([]byte(token), []byte(sess.CSRFToken)) != 1 {
+			http.Error(w, "The form has expired. Go back, reload the page and try again.", http.StatusForbidden)
+			return
 		}
 		next.ServeHTTP(w, r)
 	})
