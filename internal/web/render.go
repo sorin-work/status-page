@@ -73,6 +73,7 @@ func staticHandler() http.Handler {
 
 func (s *Server) funcs() template.FuncMap {
 	return template.FuncMap{
+		"duration": formatDuration,
 		"datetime": func(t time.Time) string {
 			if t.IsZero() {
 				return "never"
@@ -107,4 +108,21 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, name
 func (s *Server) serverError(w http.ResponseWriter, r *http.Request, err error) {
 	s.logger.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
 	http.Error(w, "Something went wrong. Please try again.", http.StatusInternalServerError)
+}
+
+// formatDuration prints short durations such as 30s, 5m or 1h30m.
+func formatDuration(d time.Duration) string {
+	switch {
+	case d <= 0:
+		return "0s"
+	case d < time.Second:
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	case d < time.Minute:
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	case d%time.Hour == 0:
+		return fmt.Sprintf("%dh", int(d.Hours()))
+	case d < time.Hour && d%time.Minute == 0:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	}
+	return d.Truncate(time.Second).String()
 }
