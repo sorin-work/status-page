@@ -13,6 +13,9 @@
         <th>Name</th>
         <th>Target</th>
         <th>Every</th>
+        <th class="num">24h</th>
+        <th class="num">7d</th>
+        <th class="num">90d</th>
       </tr>
     </thead>
     <tbody>
@@ -22,6 +25,9 @@
         <td><strong>{{.Monitor.Name}}</strong> <span class="muted small">{{.Monitor.Type}}</span></td>
         <td class="small">{{.Monitor.Target}}</td>
         <td>{{duration .Monitor.Interval}}</td>
+        <td class="num">{{.Uptime.Day}}</td>
+        <td class="num">{{.Uptime.Week}}</td>
+        <td class="num">{{.Uptime.Quarter}}</td>
       </tr>
       {{end}}
     </tbody>

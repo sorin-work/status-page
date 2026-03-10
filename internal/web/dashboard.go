@@ -4,10 +4,12 @@ import (
 	"net/http"
 
 	"github.com/sorin-work/status-page/internal/monitor"
+	"github.com/sorin-work/status-page/internal/uptime"
 )
 
 type dashboardRow struct {
 	Monitor monitor.Monitor
+	Uptime  uptime.Summary
 }
 
 type dashboardData struct {
@@ -23,8 +25,14 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var data dashboardData
+	now := s.now()
 	for _, m := range monitors {
-		data.Rows = append(data.Rows, dashboardRow{Monitor: m})
+		sum, err := uptime.Summarize(r.Context(), s.store, m.ID, now)
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		data.Rows = append(data.Rows, dashboardRow{Monitor: m, Uptime: sum})
 		switch {
 		case m.Paused:
 		case m.Status == monitor.StatusUp:
