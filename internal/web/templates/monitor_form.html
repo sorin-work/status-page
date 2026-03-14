@@ -1,0 +1,73 @@
+{{define "content"}}
+{{$f := .Data}}
+<div class="page-head">
+  <h1>{{if $f.ID}}Edit {{$f.Name}}{{else}}New monitor{{end}}</h1>
+</div>
+<form method="post" action="{{if $f.ID}}/admin/monitors/{{$f.ID}}{{else}}/admin/monitors{{end}}" class="stacked card">
+  <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+
+  <div class="field{{if index $f.Errors "name"}} invalid{{end}}">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" value="{{$f.Name}}" required maxlength="100">
+    {{with index $f.Errors "name"}}<div class="error">Name {{.}}</div>{{end}}
+  </div>
+
+  <div class="row">
+    <div class="field{{if index $f.Errors "type"}} invalid{{end}}">
+      <label for="type">Type</label>
+      <select id="type" name="type">
+        <option value="http"{{if eq $f.Type "http"}} selected{{end}}>HTTP(S)</option>
+        <option value="tcp"{{if eq $f.Type "tcp"}} selected{{end}}>TCP port</option>
+      </select>
+      {{with index $f.Errors "type"}}<div class="error">Type {{.}}</div>{{end}}
+    </div>
+    <div class="field{{if index $f.Errors "target"}} invalid{{end}}" style="flex: 3">
+      <label for="target">Target</label>
+      <input type="text" id="target" name="target" value="{{$f.Target}}" placeholder="https://example.com/health or db.internal:5432" required>
+      {{with index $f.Errors "target"}}<div class="error">Target {{.}}</div>{{end}}
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="field{{if index $f.Errors "interval"}} invalid{{end}}">
+      <label for="interval">Interval (seconds)</label>
+      <input type="number" id="interval" name="interval" value="{{$f.Interval}}" min="10" required>
+      {{with index $f.Errors "interval"}}<div class="error">Interval {{.}}</div>{{end}}
+    </div>
+    <div class="field{{if index $f.Errors "timeout"}} invalid{{end}}">
+      <label for="timeout">Timeout (seconds)</label>
+      <input type="number" id="timeout" name="timeout" value="{{$f.Timeout}}" min="1" max="60" required>
+      {{with index $f.Errors "timeout"}}<div class="error">Timeout {{.}}</div>{{end}}
+    </div>
+    <div class="field{{if index $f.Errors "retries"}} invalid{{end}}">
+      <label for="retries">Retries</label>
+      <input type="number" id="retries" name="retries" value="{{$f.Retries}}" min="0" max="10">
+      {{with index $f.Errors "retries"}}<div class="error">Retries {{.}}</div>{{end}}
+    </div>
+  </div>
+  <p class="hint muted small">A monitor is marked down after the first failed check plus this many consecutive retries.</p>
+
+  <div class="row">
+    <div class="field{{if index $f.Errors "expected_status"}} invalid{{end}}">
+      <label for="expected_status">Expected status</label>
+      <input type="number" id="expected_status" name="expected_status" value="{{$f.ExpectedStatus}}" placeholder="any 2xx/3xx">
+      {{with index $f.Errors "expected_status"}}<div class="error">Expected status {{.}}</div>{{end}}
+    </div>
+    <div class="field{{if index $f.Errors "keyword"}} invalid{{end}}" style="flex: 2">
+      <label for="keyword">Keyword</label>
+      <input type="text" id="keyword" name="keyword" value="{{$f.Keyword}}" placeholder="text the response must contain">
+      {{with index $f.Errors "keyword"}}<div class="error">Keyword {{.}}</div>{{end}}
+    </div>
+  </div>
+  <p class="hint muted small">Expected status and keyword only apply to HTTP monitors.</p>
+
+  <div class="field">
+    <label><input type="checkbox" name="paused"{{if $f.Paused}} checked{{end}}> Paused</label>
+  </div>
+
+  <div class="actions">
+    <button type="submit">{{if $f.ID}}Save changes{{else}}Create monitor{{end}}</button>
+    <a class="button secondary" href="/admin">Cancel</a>
+  </div>
+</form>
+{{end}}
