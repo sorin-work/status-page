@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sorin-work/status-page/internal/monitor"
+	"github.com/sorin-work/status-page/internal/store"
 )
 
 // monitorForm keeps the raw form values so they can be shown again next
@@ -112,6 +113,58 @@ func (s *Server) handleCreateMonitor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := s.store.CreateMonitor(r.Context(), m); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// pathID parses the {id} path value.
+func pathID(r *http.Request) (int64, bool) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	return id, err == nil && id > 0
+}
+
+// loadMonitor fetches the monitor named in the path or writes a 404.
+func (s *Server) loadMonitor(w http.ResponseWriter, r *http.Request) (monitor.Monitor, bool) {
+	id, ok := pathID(r)
+	if !ok {
+		http.NotFound(w, r)
+		return monitor.Monitor{}, false
+	}
+	m, err := s.store.GetMonitor(r.Context(), id)
+	if errors.Is(err, store.ErrNotFound) {
+		http.NotFound(w, r)
+		return monitor.Monitor{}, false
+	}
+	if err != nil {
+		s.serverError(w, r, err)
+		return monitor.Monitor{}, false
+	}
+	return m, true
+}
+
+func (s *Server) handleEditMonitor(w http.ResponseWriter, r *http.Request) {
+	m, ok := s.loadMonitor(w, r)
+	if !ok {
+		return
+	}
+	s.render(w, r, http.StatusOK, "monitor_form", page{Title: "Edit " + m.Name, Nav: "monitors", Data: formFromMonitor(m)})
+}
+
+func (s *Server) handleUpdateMonitor(w http.ResponseWriter, r *http.Request) {
+	existing, ok := s.loadMonitor(w, r)
+	if !ok {
+		return
+	}
+	m, form, valid := parseMonitorForm(r)
+	form.ID = existing.ID
+	if !valid {
+		s.render(w, r, http.StatusUnprocessableEntity, "monitor_form", page{Title: "Edit " + existing.Name, Nav: "monitors", Data: form})
+		return
+	}
+	m.ID = existing.ID
+	if _, err := s.store.UpdateMonitor(r.Context(), m); err != nil {
 		s.serverError(w, r, err)
 		return
 	}

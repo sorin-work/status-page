@@ -17,6 +17,7 @@
         <th class="num">24h</th>
         <th class="num">7d</th>
         <th class="num">90d</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -29,6 +30,7 @@
         <td class="num">{{.Uptime.Day}}</td>
         <td class="num">{{.Uptime.Week}}</td>
         <td class="num">{{.Uptime.Quarter}}</td>
+        <td><a href="/admin/monitors/{{.Monitor.ID}}/edit">Edit</a></td>
       </tr>
       {{end}}
     </tbody>

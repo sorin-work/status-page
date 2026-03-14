@@ -83,6 +83,8 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /admin", s.admin(s.handleDashboard))
 	s.mux.Handle("GET /admin/monitors/new", s.admin(s.handleNewMonitor))
 	s.mux.Handle("POST /admin/monitors", s.admin(s.handleCreateMonitor))
+	s.mux.Handle("GET /admin/monitors/{id}/edit", s.admin(s.handleEditMonitor))
+	s.mux.Handle("POST /admin/monitors/{id}", s.admin(s.handleUpdateMonitor))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
