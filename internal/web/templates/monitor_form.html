@@ -70,4 +70,14 @@
     <a class="button secondary" href="/admin">Cancel</a>
   </div>
 </form>
+
+{{if $f.ID}}
+<form method="post" action="/admin/monitors/{{$f.ID}}/delete" class="card"
+      onsubmit="return confirm('Delete this monitor and its whole check history?')">
+  <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+  <h2>Danger zone</h2>
+  <p class="muted">Deleting a monitor removes its check history and uptime data. This cannot be undone.</p>
+  <button type="submit" class="danger">Delete monitor</button>
+</form>
+{{end}}
 {{end}}

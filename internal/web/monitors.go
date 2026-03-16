@@ -170,3 +170,16 @@ func (s *Server) handleUpdateMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
+
+func (s *Server) handleDeleteMonitor(w http.ResponseWriter, r *http.Request) {
+	m, ok := s.loadMonitor(w, r)
+	if !ok {
+		return
+	}
+	if err := s.store.DeleteMonitor(r.Context(), m.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.logger.Info("monitor deleted", "monitor", m.ID, "name", m.Name)
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
