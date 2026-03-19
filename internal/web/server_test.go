@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -56,4 +57,8 @@ func TestUnknownPath(t *testing.T) {
 	if rec := get(t, srv, "/nope"); rec.Code != http.StatusNotFound {
 		t.Fatalf("got %d", rec.Code)
 	}
+}
+
+func itoa(id int64) string {
+	return strconv.FormatInt(id, 10)
 }
