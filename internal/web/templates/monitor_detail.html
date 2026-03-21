@@ -1,0 +1,48 @@
+{{define "content"}}
+{{$m := .Data.Monitor}}
+<div class="page-head">
+  <div>
+    <h1>{{$m.Name}} {{template "monitor-status" $m}}</h1>
+    <div class="muted small">{{$m.Type}} · {{$m.Target}} · every {{duration $m.Interval}}, timeout {{duration $m.Timeout}}{{if $m.Retries}}, {{$m.Retries}} retries{{end}}</div>
+  </div>
+  <div class="actions">
+    <a class="button secondary" href="/admin/monitors/{{$m.ID}}/edit">Edit</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="card stat"><div class="label">Uptime 24h</div><div class="value">{{.Data.Uptime.Day}}</div></div>
+  <div class="card stat"><div class="label">Uptime 7 days</div><div class="value">{{.Data.Uptime.Week}}</div></div>
+  <div class="card stat"><div class="label">Uptime 90 days</div><div class="value">{{.Data.Uptime.Quarter}}</div></div>
+</div>
+
+<h2>Check history</h2>
+{{if .Data.Checks}}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Result</th>
+        <th class="num">Response time</th>
+        <th class="num">Status code</th>
+        <th>Error</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Data.Checks}}
+      <tr>
+        <td>{{datetime .CheckedAt}}</td>
+        <td>{{if .Up}}<span class="badge up">up</span>{{else}}<span class="badge down">down</span>{{end}}</td>
+        <td class="num">{{duration .Latency}}</td>
+        <td class="num">{{if .StatusCode}}{{.StatusCode}}{{else}}–{{end}}</td>
+        <td class="small">{{.Error}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="card empty">No checks have run yet.</div>
+{{end}}
+{{end}}

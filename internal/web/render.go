@@ -37,7 +37,7 @@ type templates struct {
 }
 
 func loadTemplates(funcs template.FuncMap) (*templates, error) {
-	layout, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html")
+	layout, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/partials.html")
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func loadTemplates(funcs template.FuncMap) (*templates, error) {
 	t := &templates{pages: map[string]*template.Template{}}
 	for _, name := range names {
 		base := strings.TrimSuffix(path.Base(name), ".html")
-		if base == "layout" {
+		if base == "layout" || base == "partials" {
 			continue
 		}
 		clone, err := layout.Clone()

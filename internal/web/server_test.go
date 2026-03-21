@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -22,7 +23,7 @@ func newTestServer(t *testing.T) (*Server, *store.Store) {
 	if err := st.Migrate(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	srv, err := New(Options{Store: st, SiteTitle: "Acme Status"})
+	srv, err := New(Options{Store: st, SiteTitle: "Acme Status", Logger: slog.New(slog.DiscardHandler)})
 	if err != nil {
 		t.Fatal(err)
 	}

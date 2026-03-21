@@ -1,0 +1,3 @@
+{{/* Snippets shared by several pages. */}}
+
+{{define "monitor-status"}}{{if .Paused}}<span class="badge paused">paused</span>{{else}}<span class="badge {{.Status}}">{{.Status}}</span>{{end}}{{end}}
