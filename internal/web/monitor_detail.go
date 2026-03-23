@@ -13,6 +13,7 @@ type monitorDetail struct {
 	Monitor monitor.Monitor
 	Uptime  uptime.Summary
 	Checks  []monitor.Result
+	Pager   pager
 }
 
 func (s *Server) handleMonitorDetail(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,13 @@ func (s *Server) handleMonitorDetail(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	checks, err := s.store.ListChecks(r.Context(), m.ID, checksPerPage, 0)
+	total, err := s.store.CountChecks(r.Context(), m.ID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	pg := newPager(r, total, checksPerPage)
+	checks, err := s.store.ListChecks(r.Context(), m.ID, pg.PerPage, pg.Offset())
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -34,5 +41,6 @@ func (s *Server) handleMonitorDetail(w http.ResponseWriter, r *http.Request) {
 		Monitor: m,
 		Uptime:  sum,
 		Checks:  checks,
+		Pager:   pg,
 	}})
 }

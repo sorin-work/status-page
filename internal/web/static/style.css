@@ -197,6 +197,14 @@ th.num {
   font-variant-numeric: tabular-nums;
 }
 
+.pagination {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0;
+}
+
 /* Badges */
 
 .badge {

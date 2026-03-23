@@ -42,6 +42,13 @@
     </tbody>
   </table>
 </div>
+{{with .Data.Pager}}
+<div class="pagination">
+  {{if .HasPrev}}<a href="?page={{.Prev}}">&larr; Newer</a>{{end}}
+  <span class="muted">Page {{.Page}} of {{.Pages}} · {{.Total}} checks</span>
+  {{if .HasNext}}<a href="?page={{.Next}}">Older &rarr;</a>{{end}}
+</div>
+{{end}}
 {{else}}
 <div class="card empty">No checks have run yet.</div>
 {{end}}
