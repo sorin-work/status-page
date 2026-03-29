@@ -30,6 +30,19 @@ func TestMonitorDetail(t *testing.T) {
 	}
 }
 
+func TestMonitorDetailChartRange(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	m := addMonitor(t, st, "api")
+	c, _ := login(t, srv)
+	for q, active := range map[string]string{"": "24 hours", "?range=7d": "7 days", "?range=1y": "24 hours"} {
+		body := getWith(t, srv, "/admin/monitors/"+itoa(m.ID)+q, c).Body.String()
+		if !strings.Contains(body, `class="active">`+active) {
+			t.Errorf("%q: %s is not the active range", q, active)
+		}
+	}
+}
+
 func TestMonitorDetailWithoutChecks(t *testing.T) {
 	srv, st := newTestServer(t)
 	createAdmin(t, st)

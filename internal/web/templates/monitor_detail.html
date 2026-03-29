@@ -16,7 +16,12 @@
   <div class="card stat"><div class="label">Uptime 90 days</div><div class="value">{{.Data.Uptime.Quarter}}</div></div>
 </div>
 
-<h2>Response time</h2>
+<div class="page-head section-head">
+  <h2>Response time</h2>
+  <div class="tabs">
+    {{range .Data.Ranges}}<a href="?range={{.Key}}"{{if eq .Key $.Data.Range.Key}} class="active"{{end}}>{{.Label}}</a>{{end}}
+  </div>
+</div>
 {{with .Data.Chart}}
 <div class="card chart">
   {{if .Empty}}
@@ -61,9 +66,9 @@
 </div>
 {{with .Data.Pager}}
 <div class="pagination">
-  {{if .HasPrev}}<a href="?page={{.Prev}}">&larr; Newer</a>{{end}}
+  {{if .HasPrev}}<a href="?range={{$.Data.Range.Key}}&amp;page={{.Prev}}">&larr; Newer</a>{{end}}
   <span class="muted">Page {{.Page}} of {{.Pages}} · {{.Total}} checks</span>
-  {{if .HasNext}}<a href="?page={{.Next}}">Older &rarr;</a>{{end}}
+  {{if .HasNext}}<a href="?range={{$.Data.Range.Key}}&amp;page={{.Next}}">Older &rarr;</a>{{end}}
 </div>
 {{end}}
 {{else}}

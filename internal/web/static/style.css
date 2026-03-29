@@ -238,6 +238,31 @@ th.num {
   margin-top: 4px;
 }
 
+.section-head {
+  margin: 28px 0 12px;
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tabs a {
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: var(--muted);
+}
+
+.tabs a.active {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
 /* Badges */
 
 .badge {
