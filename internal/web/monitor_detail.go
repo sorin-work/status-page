@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/sorin-work/status-page/internal/monitor"
 	"github.com/sorin-work/status-page/internal/uptime"
@@ -14,6 +15,7 @@ type monitorDetail struct {
 	Uptime  uptime.Summary
 	Checks  []monitor.Result
 	Pager   pager
+	Chart   latencyChart
 }
 
 func (s *Server) handleMonitorDetail(w http.ResponseWriter, r *http.Request) {
@@ -26,6 +28,14 @@ func (s *Server) handleMonitorDetail(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	to := s.now().UTC()
+	from := to.Add(-24 * time.Hour)
+	series, err := s.store.LatencySeries(r.Context(), m.ID, from, 15*time.Minute)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
 	total, err := s.store.CountChecks(r.Context(), m.ID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -42,5 +52,6 @@ func (s *Server) handleMonitorDetail(w http.ResponseWriter, r *http.Request) {
 		Uptime:  sum,
 		Checks:  checks,
 		Pager:   pg,
+		Chart:   buildLatencyChart(series, from, to),
 	}})
 }

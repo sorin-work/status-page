@@ -16,6 +16,23 @@
   <div class="card stat"><div class="label">Uptime 90 days</div><div class="value">{{.Data.Uptime.Quarter}}</div></div>
 </div>
 
+<h2>Response time</h2>
+{{with .Data.Chart}}
+<div class="card chart">
+  {{if .Empty}}
+  <div class="empty">No successful checks in this period.</div>
+  {{else}}
+  <div class="chart-legend muted small">avg {{.AvgLabel}} · peak {{.MaxLabel}}</div>
+  <svg viewBox="0 0 {{.Width}} {{.Height}}" preserveAspectRatio="none" role="img" aria-label="Response time chart">
+    <line x1="0" y1="{{.Height}}" x2="{{.Width}}" y2="{{.Height}}" class="axis"></line>
+    {{range .Marks}}<line x1="{{.X}}" y1="0" x2="{{.X}}" y2="{{$.Data.Chart.Height}}" class="fail"><title>{{.Title}}</title></line>{{end}}
+    <polyline points="{{.Points}}" class="line"></polyline>
+  </svg>
+  <div class="chart-axis muted small"><span>{{datetime .From}}</span><span>{{datetime .To}}</span></div>
+  {{end}}
+</div>
+{{end}}
+
 <h2>Check history</h2>
 {{if .Data.Checks}}
 <div class="table-wrap">

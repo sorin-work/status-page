@@ -205,6 +205,39 @@ th.num {
   margin: 16px 0;
 }
 
+/* Response time chart */
+
+.chart svg {
+  display: block;
+  width: 100%;
+  height: 160px;
+}
+
+.chart .line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart .axis {
+  stroke: var(--border);
+  vector-effect: non-scaling-stroke;
+}
+
+.chart .fail {
+  stroke: var(--down);
+  stroke-opacity: 0.35;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
 /* Badges */
 
 .badge {
