@@ -6,6 +6,10 @@
     <div class="muted small">{{$m.Type}} · {{$m.Target}} · every {{duration $m.Interval}}, timeout {{duration $m.Timeout}}{{if $m.Retries}}, {{$m.Retries}} retries{{end}}</div>
   </div>
   <div class="actions">
+    <form method="post" action="/admin/monitors/{{$m.ID}}/{{if $m.Paused}}resume{{else}}pause{{end}}" class="inline">
+      <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+      <button type="submit" class="secondary">{{if $m.Paused}}Resume{{else}}Pause{{end}}</button>
+    </form>
     <a class="button secondary" href="/admin/monitors/{{$m.ID}}/edit">Edit</a>
   </div>
 </div>

@@ -139,3 +139,13 @@ func (s *Store) SetMonitorStatus(ctx context.Context, id int64, status monitor.S
 	}
 	return expectOneRow(res)
 }
+
+// SetMonitorPaused pauses or resumes a monitor.
+func (s *Store) SetMonitorPaused(ctx context.Context, id int64, paused bool) error {
+	res, err := s.db.ExecContext(ctx, `UPDATE monitors SET paused = ?, updated_at = ? WHERE id = ?`,
+		paused, s.now().UTC().Unix(), id)
+	if err != nil {
+		return err
+	}
+	return expectOneRow(res)
+}

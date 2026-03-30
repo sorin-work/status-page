@@ -183,3 +183,23 @@ func (s *Server) handleDeleteMonitor(w http.ResponseWriter, r *http.Request) {
 	s.logger.Info("monitor deleted", "monitor", m.ID, "name", m.Name)
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
+
+func (s *Server) handlePauseMonitor(w http.ResponseWriter, r *http.Request) {
+	s.setPaused(w, r, true)
+}
+
+func (s *Server) handleResumeMonitor(w http.ResponseWriter, r *http.Request) {
+	s.setPaused(w, r, false)
+}
+
+func (s *Server) setPaused(w http.ResponseWriter, r *http.Request, paused bool) {
+	m, ok := s.loadMonitor(w, r)
+	if !ok {
+		return
+	}
+	if err := s.store.SetMonitorPaused(r.Context(), m.ID, paused); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	http.Redirect(w, r, "/admin/monitors/"+strconv.FormatInt(m.ID, 10), http.StatusSeeOther)
+}

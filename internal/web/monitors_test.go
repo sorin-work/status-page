@@ -120,6 +120,29 @@ func TestEditMissingMonitor(t *testing.T) {
 	}
 }
 
+func TestPauseAndResumeMonitor(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	m := addMonitor(t, st, "api")
+	c, csrf := login(t, srv)
+	ctx := context.Background()
+
+	rec := postForm(t, srv, "/admin/monitors/"+itoa(m.ID)+"/pause", url.Values{"csrf": {csrf}}, c)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("pause: %d", rec.Code)
+	}
+	if got, _ := st.GetMonitor(ctx, m.ID); !got.Paused {
+		t.Fatal("monitor not paused")
+	}
+	if body := getWith(t, srv, "/admin/monitors/"+itoa(m.ID), c).Body.String(); !strings.Contains(body, "Resume") {
+		t.Error("paused monitor page has no resume button")
+	}
+	postForm(t, srv, "/admin/monitors/"+itoa(m.ID)+"/resume", url.Values{"csrf": {csrf}}, c)
+	if got, _ := st.GetMonitor(ctx, m.ID); got.Paused {
+		t.Fatal("monitor still paused")
+	}
+}
+
 func TestDeleteMonitor(t *testing.T) {
 	srv, st := newTestServer(t)
 	createAdmin(t, st)
