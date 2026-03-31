@@ -41,8 +41,8 @@ func TestCreateMonitor(t *testing.T) {
 	c, csrf := login(t, srv)
 
 	rec := postForm(t, srv, "/admin/monitors", monitorValues(csrf), c)
-	if rec.Code != http.StatusSeeOther {
-		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusSeeOther || !strings.HasPrefix(rec.Header().Get("Location"), "/admin/monitors/") {
+		t.Fatalf("create: %d to %q", rec.Code, rec.Header().Get("Location"))
 	}
 	list, err := st.ListMonitors(context.Background())
 	if err != nil || len(list) != 1 {

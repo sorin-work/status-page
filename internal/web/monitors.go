@@ -112,11 +112,12 @@ func (s *Server) handleCreateMonitor(w http.ResponseWriter, r *http.Request) {
 		s.render(w, r, http.StatusUnprocessableEntity, "monitor_form", page{Title: "New monitor", Nav: "monitors", Data: form})
 		return
 	}
-	if _, err := s.store.CreateMonitor(r.Context(), m); err != nil {
+	created, err := s.store.CreateMonitor(r.Context(), m)
+	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/monitors/"+strconv.FormatInt(created.ID, 10), http.StatusSeeOther)
 }
 
 // pathID parses the {id} path value.
@@ -168,7 +169,7 @@ func (s *Server) handleUpdateMonitor(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/monitors/"+strconv.FormatInt(m.ID, 10), http.StatusSeeOther)
 }
 
 func (s *Server) handleDeleteMonitor(w http.ResponseWriter, r *http.Request) {
