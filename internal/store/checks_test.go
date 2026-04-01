@@ -120,3 +120,27 @@ func TestCountChecksSince(t *testing.T) {
 		t.Errorf("empty range: up=%d total=%d err=%v", up, total, err)
 	}
 }
+
+func TestLatestChecks(t *testing.T) {
+	s := newTestStore(t)
+	a := createMonitor(t, s, "a")
+	b := createMonitor(t, s, "b")
+	createMonitor(t, s, "never checked")
+	start := time.Date(2026, 4, 1, 12, 0, 0, 0, time.UTC)
+	recordChecks(t, s, a.ID, start, time.Minute, true, true, false)
+	recordChecks(t, s, b.ID, start, time.Minute, true)
+
+	latest, err := s.LatestChecks(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(latest) != 2 {
+		t.Fatalf("got %d entries", len(latest))
+	}
+	if r := latest[a.ID]; r.Up || !r.CheckedAt.Equal(start.Add(2*time.Minute)) {
+		t.Errorf("latest of a = %+v", r)
+	}
+	if r := latest[b.ID]; !r.Up || r.Latency != 100*time.Millisecond {
+		t.Errorf("latest of b = %+v", r)
+	}
+}

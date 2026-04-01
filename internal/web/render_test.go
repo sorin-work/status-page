@@ -5,6 +5,21 @@ import (
 	"time"
 )
 
+func TestFormatAgo(t *testing.T) {
+	cases := map[time.Duration]string{
+		time.Second:      "just now",
+		42 * time.Second: "42s ago",
+		5 * time.Minute:  "5m ago",
+		26 * time.Hour:   "26h ago",
+		72 * time.Hour:   "3d ago",
+	}
+	for d, want := range cases {
+		if got := formatAgo(d); got != want {
+			t.Errorf("%v: got %q, want %q", d, got, want)
+		}
+	}
+}
+
 func TestFormatDuration(t *testing.T) {
 	cases := map[time.Duration]string{
 		0:                                   "0s",

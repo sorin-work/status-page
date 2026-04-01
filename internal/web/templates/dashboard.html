@@ -14,6 +14,7 @@
         <th>Name</th>
         <th>Target</th>
         <th>Every</th>
+        <th>Last check</th>
         <th class="num">24h</th>
         <th class="num">7d</th>
         <th class="num">90d</th>
@@ -27,6 +28,7 @@
         <td><a href="/admin/monitors/{{.Monitor.ID}}"><strong>{{.Monitor.Name}}</strong></a> <span class="muted small">{{.Monitor.Type}}</span></td>
         <td class="small">{{.Monitor.Target}}</td>
         <td>{{duration .Monitor.Interval}}</td>
+        <td class="small">{{with .Last}}{{ago .CheckedAt}} · {{if .Up}}{{duration .Latency}}{{else}}<span title="{{.Error}}">failed</span>{{end}}{{else}}<span class="muted">never</span>{{end}}</td>
         <td class="num">{{.Uptime.Day}}</td>
         <td class="num">{{.Uptime.Week}}</td>
         <td class="num">{{.Uptime.Quarter}}</td>

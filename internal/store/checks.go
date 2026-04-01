@@ -86,3 +86,29 @@ func (s *Store) CountChecksSince(ctx context.Context, monitorID int64, since tim
 		FROM checks WHERE monitor_id = ? AND checked_at >= ?`, monitorID, since.Unix()).Scan(&up, &total)
 	return up, total, err
 }
+
+// LatestChecks returns the most recent check of every monitor that has one.
+func (s *Store) LatestChecks(ctx context.Context) (map[int64]monitor.Result, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT c.monitor_id, c.checked_at, c.up, c.latency_ms, c.status_code, c.error
+		FROM checks c
+		JOIN (SELECT monitor_id, MAX(id) AS id FROM checks GROUP BY monitor_id) last ON last.id = c.id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64]monitor.Result{}
+	for rows.Next() {
+		var (
+			r         monitor.Result
+			checkedAt int64
+			latencyMS int64
+		)
+		if err := rows.Scan(&r.MonitorID, &checkedAt, &r.Up, &latencyMS, &r.StatusCode, &r.Error); err != nil {
+			return nil, err
+		}
+		r.CheckedAt = time.Unix(checkedAt, 0).UTC()
+		r.Latency = time.Duration(latencyMS) * time.Millisecond
+		out[r.MonitorID] = r
+	}
+	return out, rows.Err()
+}

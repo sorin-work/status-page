@@ -74,6 +74,9 @@ func staticHandler() http.Handler {
 func (s *Server) funcs() template.FuncMap {
 	return template.FuncMap{
 		"duration": formatDuration,
+		"ago": func(t time.Time) string {
+			return formatAgo(s.now().Sub(t))
+		},
 		"datetime": func(t time.Time) string {
 			if t.IsZero() {
 				return "never"
@@ -125,4 +128,20 @@ func formatDuration(d time.Duration) string {
 		return fmt.Sprintf("%dm", int(d.Minutes()))
 	}
 	return d.Truncate(time.Second).String()
+}
+
+// formatAgo prints how long ago something happened, e.g. "3m ago".
+func formatAgo(d time.Duration) string {
+	switch {
+	case d < 10*time.Second:
+		return "just now"
+	case d < time.Minute:
+		return fmt.Sprintf("%ds ago", int(d.Seconds()))
+	case d < time.Hour:
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	case d < 48*time.Hour:
+		return fmt.Sprintf("%dh ago", int(d.Hours()))
+	default:
+		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
+	}
 }
