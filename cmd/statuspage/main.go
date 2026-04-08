@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sorin-work/status-page/internal/alerting"
 	"github.com/sorin-work/status-page/internal/auth"
 	"github.com/sorin-work/status-page/internal/config"
 	"github.com/sorin-work/status-page/internal/monitor"
@@ -53,6 +54,7 @@ func run() error {
 
 	sched := scheduler.New(st, monitor.NewChecker(), cfg.CheckWorkers, logger.With("component", "scheduler"))
 	sched.Jitter = 10 * time.Second
+	sched.OnTransition = alerting.New(st, logger.With("component", "alerting")).HandleTransition
 	schedDone := make(chan struct{})
 	go func() {
 		sched.Run(ctx)
