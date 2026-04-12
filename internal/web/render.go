@@ -74,6 +74,7 @@ func staticHandler() http.Handler {
 func (s *Server) funcs() template.FuncMap {
 	return template.FuncMap{
 		"duration": formatDuration,
+		"now":      s.now,
 		"ago": func(t time.Time) string {
 			return formatAgo(s.now().Sub(t))
 		},

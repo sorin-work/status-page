@@ -1,0 +1,42 @@
+{{define "content"}}
+<div class="page-head">
+  <h1>Incidents</h1>
+</div>
+{{with .Data}}
+{{if .Incidents}}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Title</th>
+        <th>Impact</th>
+        <th>Started</th>
+        <th class="num">Duration</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Incidents}}
+      <tr>
+        <td><span class="badge {{.Status}}">{{.Status}}</span></td>
+        <td><strong>{{.Title}}</strong>{{if .Automatic}} <span class="muted small">automatic</span>{{end}}</td>
+        <td><span class="badge {{.Impact}}">{{.Impact}}</span></td>
+        <td>{{datetime .StartedAt}}</td>
+        <td class="num">{{duration (.Duration now)}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{with .Pager}}{{if gt .Pages 1}}
+<div class="pagination">
+  {{if .HasPrev}}<a href="?page={{.Prev}}">&larr; Newer</a>{{end}}
+  <span class="muted">Page {{.Page}} of {{.Pages}}</span>
+  {{if .HasNext}}<a href="?page={{.Next}}">Older &rarr;</a>{{end}}
+</div>
+{{end}}{{end}}
+{{else}}
+<div class="card empty">No incidents so far.</div>
+{{end}}
+{{end}}
+{{end}}
