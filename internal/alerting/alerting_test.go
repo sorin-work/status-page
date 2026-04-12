@@ -65,6 +65,53 @@ func TestDownTwiceKeepsOneIncident(t *testing.T) {
 	}
 }
 
+func TestRecoveryResolvesIncident(t *testing.T) {
+	mgr, st, m := setup(t)
+	ctx := context.Background()
+	down := time.Date(2026, 4, 12, 14, 0, 0, 0, time.UTC)
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusUp, monitor.StatusDown, down, "timeout"))
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusDown, monitor.StatusUp, down.Add(65*time.Minute), ""))
+
+	list, _ := st.ListIncidents(ctx, 10, 0)
+	if len(list) != 1 {
+		t.Fatalf("%d incidents", len(list))
+	}
+	inc, _ := st.GetIncident(ctx, list[0].ID)
+	if inc.Status != incident.StatusResolved || !inc.ResolvedAt.Equal(down.Add(65*time.Minute)) {
+		t.Errorf("incident = %+v", inc)
+	}
+	if got := inc.Updates[0].Message; got != "Checkout is responding again. Total downtime: 1h 5m." {
+		t.Errorf("message = %q", got)
+	}
+	if _, err := st.OpenIncidentForMonitor(ctx, m.ID); err == nil {
+		t.Error("incident still open")
+	}
+}
+
+func TestRecoveryWithoutIncident(t *testing.T) {
+	mgr, st, m := setup(t)
+	ctx := context.Background()
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusDown, monitor.StatusUp, time.Now(), ""))
+	if n, _ := st.CountIncidents(ctx); n != 0 {
+		t.Errorf("%d incidents", n)
+	}
+}
+
+func TestHumanDuration(t *testing.T) {
+	cases := map[time.Duration]string{
+		20 * time.Second:  "less than a minute",
+		50 * time.Second:  "1m",
+		45 * time.Minute:  "45m",
+		2 * time.Hour:     "2h",
+		150 * time.Minute: "2h 30m",
+	}
+	for d, want := range cases {
+		if got := humanDuration(d); got != want {
+			t.Errorf("%v: got %q, want %q", d, got, want)
+		}
+	}
+}
+
 func TestFirstUpOpensNothing(t *testing.T) {
 	mgr, st, m := setup(t)
 	ctx := context.Background()

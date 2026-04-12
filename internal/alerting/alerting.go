@@ -22,7 +22,8 @@ type Store interface {
 	AddIncidentUpdate(ctx context.Context, incidentID int64, status incident.Status, message string, at time.Time) (incident.Update, error)
 }
 
-// Manager opens an incident when a monitor goes down.
+// Manager opens an incident when a monitor goes down and resolves it when
+// the monitor recovers.
 type Manager struct {
 	store  Store
 	logger *slog.Logger
@@ -44,6 +45,47 @@ func (m *Manager) HandleTransition(ctx context.Context, t scheduler.Transition) 
 			m.logger.Error("open incident", "monitor", t.Monitor.ID, "err", err)
 		}
 	}
+	if t.To == monitor.StatusUp && t.From == monitor.StatusDown {
+		if err := m.monitorUp(ctx, t); err != nil {
+			m.logger.Error("resolve incident", "monitor", t.Monitor.ID, "err", err)
+		}
+	}
+}
+
+func (m *Manager) monitorUp(ctx context.Context, t scheduler.Transition) error {
+	inc, err := m.store.OpenIncidentForMonitor(ctx, t.Monitor.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	at := t.Result.CheckedAt
+	if at.IsZero() {
+		at = m.now()
+	}
+	msg := fmt.Sprintf("%s is responding again. Total downtime: %s.", t.Monitor.Name, humanDuration(at.Sub(inc.StartedAt)))
+	if _, err := m.store.AddIncidentUpdate(ctx, inc.ID, incident.StatusResolved, msg, at); err != nil {
+		return err
+	}
+	m.logger.Info("incident resolved", "incident", inc.ID, "monitor", t.Monitor.ID)
+	return nil
+}
+
+// humanDuration rounds to minutes, e.g. "1h 5m" or "less than a minute".
+func humanDuration(d time.Duration) string {
+	d = d.Round(time.Minute)
+	if d < time.Minute {
+		return "less than a minute"
+	}
+	h, m := int(d.Hours()), int(d.Minutes())%60
+	switch {
+	case h == 0:
+		return fmt.Sprintf("%dm", m)
+	case m == 0:
+		return fmt.Sprintf("%dh", h)
+	}
+	return fmt.Sprintf("%dh %dm", h, m)
 }
 
 func (m *Manager) monitorDown(ctx context.Context, t scheduler.Transition) error {
