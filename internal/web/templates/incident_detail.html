@@ -13,12 +13,31 @@
   </div>
 </div>
 
+{{$f := .Data.Form}}
+<form method="post" action="/admin/incidents/{{$i.ID}}/updates" class="card stacked">
+  <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+  <h2>Post an update</h2>
+  <div class="field">
+    <label for="status">Status</label>
+    <select id="status" name="status">
+      {{range .Data.Statuses}}<option value="{{.}}"{{if eq (print .) $f.Status}} selected{{end}}>{{.}}</option>{{end}}
+    </select>
+    {{with index $f.Errors "status"}}<div class="error">Status {{.}}</div>{{end}}
+  </div>
+  <div class="field{{if index $f.Errors "message"}} invalid{{end}}">
+    <label for="message">Message</label>
+    <textarea id="message" name="message" required>{{$f.Message}}</textarea>
+    {{with index $f.Errors "message"}}<div class="error">Message {{.}}</div>{{end}}
+  </div>
+  <button type="submit">Post update</button>
+</form>
+
 <h2>Timeline</h2>
 <ol class="timeline">
   {{range $i.Updates}}
   <li>
     <div class="when"><span class="badge {{.Status}}">{{.Status}}</span> <span class="muted small">{{datetime .CreatedAt}}</span></div>
-    <div class="message">{{.Message}}</div>
+    <div class="message">{{nl2br .Message}}</div>
   </li>
   {{end}}
 </ol>

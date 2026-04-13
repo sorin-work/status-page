@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sorin-work/status-page/internal/incident"
 	"github.com/sorin-work/status-page/internal/store"
@@ -100,8 +101,16 @@ func (s *Server) loadIncident(w http.ResponseWriter, r *http.Request) (incident.
 	return inc, true
 }
 
+type updateForm struct {
+	Status  string
+	Message string
+	Errors  map[string]string
+}
+
 type incidentDetail struct {
 	Incident incident.Incident
+	Form     updateForm
+	Statuses []incident.Status
 }
 
 func (s *Server) handleIncidentDetail(w http.ResponseWriter, r *http.Request) {
@@ -109,5 +118,28 @@ func (s *Server) handleIncidentDetail(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	s.render(w, r, http.StatusOK, "incident_detail", page{Title: inc.Title, Nav: "incidents", Data: incidentDetail{Incident: inc}})
+	s.render(w, r, http.StatusOK, "incident_detail", page{Title: inc.Title, Nav: "incidents", Data: incidentDetail{
+		Incident: inc, Form: updateForm{Status: string(inc.Status)}, Statuses: incident.Statuses,
+	}})
+}
+
+func (s *Server) handleAddIncidentUpdate(w http.ResponseWriter, r *http.Request) {
+	inc, ok := s.loadIncident(w, r)
+	if !ok {
+		return
+	}
+	status := incident.Status(r.PostFormValue("status"))
+	message := r.PostFormValue("message")
+	var verr incident.ValidationError
+	if err := incident.ValidateUpdate(status, message); errors.As(err, &verr) {
+		s.render(w, r, http.StatusUnprocessableEntity, "incident_detail", page{Title: inc.Title, Nav: "incidents", Data: incidentDetail{
+			Incident: inc, Form: updateForm{Status: string(status), Message: message, Errors: verr}, Statuses: incident.Statuses,
+		}})
+		return
+	}
+	if _, err := s.store.AddIncidentUpdate(r.Context(), inc.ID, status, message, time.Time{}); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	http.Redirect(w, r, "/admin/incidents/"+strconv.FormatInt(inc.ID, 10), http.StatusSeeOther)
 }

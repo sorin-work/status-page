@@ -77,6 +77,35 @@ func TestCreateIncidentValidation(t *testing.T) {
 	}
 }
 
+func TestAddIncidentUpdate(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	ctx := context.Background()
+	inc, err := st.CreateIncident(ctx, incident.Incident{Title: "API errors", Status: incident.StatusInvestigating, Impact: incident.ImpactMinor}, "Looking.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, csrf := login(t, srv)
+	path := "/admin/incidents/" + itoa(inc.ID)
+
+	rec := postForm(t, srv, path+"/updates", url.Values{"csrf": {csrf}, "status": {"resolved"}, "message": {"Fixed.\nThanks for your patience."}}, c)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("update: %d", rec.Code)
+	}
+	got, _ := st.GetIncident(ctx, inc.ID)
+	if got.Status != incident.StatusResolved || len(got.Updates) != 2 {
+		t.Fatalf("incident = %+v", got)
+	}
+	if body := getWith(t, srv, path, c).Body.String(); !strings.Contains(body, "Fixed.<br>Thanks for your patience.") {
+		t.Error("line break not kept")
+	}
+
+	rec = postForm(t, srv, path+"/updates", url.Values{"csrf": {csrf}, "status": {"resolved"}, "message": {"  "}}, c)
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Message is required") {
+		t.Errorf("empty update: %d", rec.Code)
+	}
+}
+
 func TestIncidentDetailNotFound(t *testing.T) {
 	srv, st := newTestServer(t)
 	createAdmin(t, st)

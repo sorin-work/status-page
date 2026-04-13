@@ -75,6 +75,10 @@ func (s *Server) funcs() template.FuncMap {
 	return template.FuncMap{
 		"duration": formatDuration,
 		"now":      s.now,
+		// nl2br keeps the line breaks of multi-line messages.
+		"nl2br": func(text string) template.HTML {
+			return template.HTML(strings.ReplaceAll(text, "\n", "<br>"))
+		},
 		"ago": func(t time.Time) string {
 			return formatAgo(s.now().Sub(t))
 		},
