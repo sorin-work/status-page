@@ -1,0 +1,25 @@
+{{define "content"}}
+{{$i := .Data.Incident}}
+<div class="page-head">
+  <div>
+    <h1>{{$i.Title}}</h1>
+    <div class="muted small">
+      <span class="badge {{$i.Status}}">{{$i.Status}}</span>
+      <span class="badge {{$i.Impact}}">{{$i.Impact}} impact</span>
+      started {{datetime $i.StartedAt}}{{if $i.Resolved}}, resolved {{datetime $i.ResolvedAt}}{{end}}
+      · {{duration ($i.Duration now)}}
+      {{if $i.Automatic}}· opened automatically{{end}}
+    </div>
+  </div>
+</div>
+
+<h2>Timeline</h2>
+<ol class="timeline">
+  {{range $i.Updates}}
+  <li>
+    <div class="when"><span class="badge {{.Status}}">{{.Status}}</span> <span class="muted small">{{datetime .CreatedAt}}</span></div>
+    <div class="message">{{.Message}}</div>
+  </li>
+  {{end}}
+</ol>
+{{end}}

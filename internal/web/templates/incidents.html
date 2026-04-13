@@ -1,6 +1,7 @@
 {{define "content"}}
 <div class="page-head">
   <h1>Incidents</h1>
+  <a class="button" href="/admin/incidents/new">New incident</a>
 </div>
 {{with .Data}}
 {{if .Incidents}}
@@ -19,7 +20,7 @@
       {{range .Incidents}}
       <tr>
         <td><span class="badge {{.Status}}">{{.Status}}</span></td>
-        <td><strong>{{.Title}}</strong>{{if .Automatic}} <span class="muted small">automatic</span>{{end}}</td>
+        <td><a href="/admin/incidents/{{.ID}}"><strong>{{.Title}}</strong></a>{{if .Automatic}} <span class="muted small">automatic</span>{{end}}</td>
         <td><span class="badge {{.Impact}}">{{.Impact}}</span></td>
         <td>{{datetime .StartedAt}}</td>
         <td class="num">{{duration (.Duration now)}}</td>
