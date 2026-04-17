@@ -13,6 +13,7 @@
       {{if .User}}
       <nav class="nav">
         <a href="/admin"{{if eq .Nav "monitors"}} class="active"{{end}}>Monitors</a>
+        <a href="/admin/components"{{if eq .Nav "components"}} class="active"{{end}}>Components</a>
         <a href="/admin/incidents"{{if eq .Nav "incidents"}} class="active"{{end}}>Incidents</a>
       </nav>
       <div class="user-menu">

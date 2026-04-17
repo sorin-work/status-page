@@ -1,0 +1,54 @@
+{{define "content"}}
+<div class="page-head">
+  <h1>Components</h1>
+</div>
+<p class="muted">Components are the parts of your service listed on the public status page. Assign monitors to a component to drive its status and uptime bars.</p>
+{{with .Data.Error}}<div class="alert">{{.}}</div>{{end}}
+
+{{if .Data.Components}}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Order</th><th>Name</th><th>Description</th><th></th></tr>
+    </thead>
+    <tbody>
+      {{range .Data.Components}}
+      <tr>
+        <td colspan="3">
+          <form method="post" action="/admin/components/{{.ID}}" class="row" id="component-{{.ID}}">
+            <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+            <input type="number" name="position" value="{{.Position}}" style="max-width: 80px" aria-label="Order">
+            <input type="text" name="name" value="{{.Name}}" aria-label="Name" required>
+            <input type="text" name="description" value="{{.Description}}" aria-label="Description">
+            <button type="submit" class="secondary">Save</button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="/admin/components/{{.ID}}/delete" class="inline" onsubmit="return confirm('Delete this component?')">
+            <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+            <button type="submit" class="link">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="card empty">No components yet. Add the first one below.</div>
+{{end}}
+
+<form method="post" action="/admin/components" class="card stacked">
+  <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+  <h2>Add a component</h2>
+  <div class="field">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" value="{{.Data.Name}}" placeholder="API" required>
+  </div>
+  <div class="field">
+    <label for="description">Description</label>
+    <input type="text" id="description" name="description" value="{{.Data.Desc}}" placeholder="Shown under the name on the status page">
+  </div>
+  <button type="submit">Add component</button>
+</form>
+{{end}}
