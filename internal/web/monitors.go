@@ -24,20 +24,23 @@ type monitorForm struct {
 	Keyword        string
 	Retries        string
 	Paused         bool
+	ComponentID    int64
 	Errors         map[string]string
+	Components     []store.Component
 }
 
 func formFromMonitor(m monitor.Monitor) monitorForm {
 	f := monitorForm{
-		ID:       m.ID,
-		Name:     m.Name,
-		Type:     string(m.Type),
-		Target:   m.Target,
-		Interval: strconv.Itoa(int(m.Interval / time.Second)),
-		Timeout:  strconv.Itoa(int(m.Timeout / time.Second)),
-		Keyword:  m.Keyword,
-		Retries:  strconv.Itoa(m.Retries),
-		Paused:   m.Paused,
+		ID:          m.ID,
+		Name:        m.Name,
+		Type:        string(m.Type),
+		Target:      m.Target,
+		Interval:    strconv.Itoa(int(m.Interval / time.Second)),
+		Timeout:     strconv.Itoa(int(m.Timeout / time.Second)),
+		Keyword:     m.Keyword,
+		Retries:     strconv.Itoa(m.Retries),
+		Paused:      m.Paused,
+		ComponentID: m.ComponentID,
 	}
 	if m.ExpectedStatus != 0 {
 		f.ExpectedStatus = strconv.Itoa(m.ExpectedStatus)
@@ -68,12 +71,14 @@ func parseMonitorForm(r *http.Request) (monitor.Monitor, monitorForm, bool) {
 		Paused:         r.PostFormValue("paused") == "on",
 		Errors:         map[string]string{},
 	}
+	f.ComponentID, _ = strconv.ParseInt(r.PostFormValue("component_id"), 10, 64)
 	m := monitor.Monitor{
-		Name:    f.Name,
-		Type:    monitor.Type(f.Type),
-		Target:  f.Target,
-		Keyword: f.Keyword,
-		Paused:  f.Paused,
+		Name:        f.Name,
+		Type:        monitor.Type(f.Type),
+		Target:      f.Target,
+		Keyword:     f.Keyword,
+		Paused:      f.Paused,
+		ComponentID: f.ComponentID,
 	}
 	number := func(field, value string, allowEmpty bool) int {
 		if value == "" && allowEmpty {
@@ -102,14 +107,37 @@ func parseMonitorForm(r *http.Request) (monitor.Monitor, monitorForm, bool) {
 	return m, f, len(f.Errors) == 0
 }
 
+// renderMonitorForm fills in the component choices and renders the form.
+func (s *Server) renderMonitorForm(w http.ResponseWriter, r *http.Request, status int, title string, f monitorForm) {
+	components, err := s.store.ListComponents(r.Context())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	f.Components = components
+	if f.ComponentID != 0 && !hasComponent(components, f.ComponentID) {
+		f.ComponentID = 0
+	}
+	s.render(w, r, status, "monitor_form", page{Title: title, Nav: "monitors", Data: f})
+}
+
+func hasComponent(list []store.Component, id int64) bool {
+	for _, c := range list {
+		if c.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) handleNewMonitor(w http.ResponseWriter, r *http.Request) {
-	s.render(w, r, http.StatusOK, "monitor_form", page{Title: "New monitor", Nav: "monitors", Data: newMonitorForm()})
+	s.renderMonitorForm(w, r, http.StatusOK, "New monitor", newMonitorForm())
 }
 
 func (s *Server) handleCreateMonitor(w http.ResponseWriter, r *http.Request) {
 	m, form, ok := parseMonitorForm(r)
 	if !ok {
-		s.render(w, r, http.StatusUnprocessableEntity, "monitor_form", page{Title: "New monitor", Nav: "monitors", Data: form})
+		s.renderMonitorForm(w, r, http.StatusUnprocessableEntity, "New monitor", form)
 		return
 	}
 	created, err := s.store.CreateMonitor(r.Context(), m)
@@ -150,7 +178,7 @@ func (s *Server) handleEditMonitor(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	s.render(w, r, http.StatusOK, "monitor_form", page{Title: "Edit " + m.Name, Nav: "monitors", Data: formFromMonitor(m)})
+	s.renderMonitorForm(w, r, http.StatusOK, "Edit "+m.Name, formFromMonitor(m))
 }
 
 func (s *Server) handleUpdateMonitor(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +189,7 @@ func (s *Server) handleUpdateMonitor(w http.ResponseWriter, r *http.Request) {
 	m, form, valid := parseMonitorForm(r)
 	form.ID = existing.ID
 	if !valid {
-		s.render(w, r, http.StatusUnprocessableEntity, "monitor_form", page{Title: "Edit " + existing.Name, Nav: "monitors", Data: form})
+		s.renderMonitorForm(w, r, http.StatusUnprocessableEntity, "Edit "+existing.Name, form)
 		return
 	}
 	m.ID = existing.ID

@@ -62,6 +62,15 @@
   <p class="hint muted small">Expected status and keyword only apply to HTTP monitors.</p>
 
   <div class="field">
+    <label for="component_id">Status page component</label>
+    <select id="component_id" name="component_id">
+      <option value="0">None (not shown publicly)</option>
+      {{range $f.Components}}<option value="{{.ID}}"{{if eq .ID $f.ComponentID}} selected{{end}}>{{.Name}}</option>{{end}}
+    </select>
+    {{if not $f.Components}}<div class="hint">Create components first to show this monitor on the status page.</div>{{end}}
+  </div>
+
+  <div class="field">
     <label><input type="checkbox" name="paused"{{if $f.Paused}} checked{{end}}> Paused</label>
   </div>
 

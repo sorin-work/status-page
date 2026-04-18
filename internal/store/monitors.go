@@ -10,7 +10,7 @@ import (
 )
 
 const monitorColumns = `id, name, type, target, interval_seconds, timeout_seconds,
-	expected_status, keyword, retries, paused, status, created_at, updated_at`
+	expected_status, keyword, retries, paused, status, created_at, updated_at, COALESCE(component_id, 0)`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -24,7 +24,7 @@ func scanMonitor(r rowScanner) (monitor.Monitor, error) {
 		created, updated  int64
 	)
 	err := r.Scan(&m.ID, &m.Name, &typ, &m.Target, &interval, &timeout,
-		&m.ExpectedStatus, &m.Keyword, &m.Retries, &m.Paused, &status, &created, &updated)
+		&m.ExpectedStatus, &m.Keyword, &m.Retries, &m.Paused, &status, &created, &updated, &m.ComponentID)
 	if err != nil {
 		return monitor.Monitor{}, err
 	}
@@ -45,10 +45,10 @@ func (s *Store) CreateMonitor(ctx context.Context, m monitor.Monitor) (monitor.M
 		m.Status = monitor.StatusUnknown
 	}
 	res, err := s.db.ExecContext(ctx, `INSERT INTO monitors
-		(name, type, target, interval_seconds, timeout_seconds, expected_status, keyword, retries, paused, status, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		(name, type, target, interval_seconds, timeout_seconds, expected_status, keyword, retries, paused, status, created_at, updated_at, component_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		m.Name, string(m.Type), m.Target, int64(m.Interval/time.Second), int64(m.Timeout/time.Second),
-		m.ExpectedStatus, m.Keyword, m.Retries, m.Paused, string(m.Status), now.Unix(), now.Unix())
+		m.ExpectedStatus, m.Keyword, m.Retries, m.Paused, string(m.Status), now.Unix(), now.Unix(), nullableID(m.ComponentID))
 	if err != nil {
 		return monitor.Monitor{}, err
 	}
@@ -98,10 +98,10 @@ func (s *Store) UpdateMonitor(ctx context.Context, m monitor.Monitor) (monitor.M
 	now := s.now().UTC().Truncate(time.Second)
 	res, err := s.db.ExecContext(ctx, `UPDATE monitors SET
 		name = ?, type = ?, target = ?, interval_seconds = ?, timeout_seconds = ?,
-		expected_status = ?, keyword = ?, retries = ?, paused = ?, updated_at = ?
+		expected_status = ?, keyword = ?, retries = ?, paused = ?, updated_at = ?, component_id = ?
 		WHERE id = ?`,
 		m.Name, string(m.Type), m.Target, int64(m.Interval/time.Second), int64(m.Timeout/time.Second),
-		m.ExpectedStatus, m.Keyword, m.Retries, m.Paused, now.Unix(), m.ID)
+		m.ExpectedStatus, m.Keyword, m.Retries, m.Paused, now.Unix(), nullableID(m.ComponentID), m.ID)
 	if err != nil {
 		return monitor.Monitor{}, err
 	}
@@ -148,4 +148,9 @@ func (s *Store) SetMonitorPaused(ctx context.Context, id int64, paused bool) err
 		return err
 	}
 	return expectOneRow(res)
+}
+
+// ListComponentMonitors returns the monitors that belong to a component.
+func (s *Store) ListComponentMonitors(ctx context.Context, componentID int64) ([]monitor.Monitor, error) {
+	return s.queryMonitors(ctx, `SELECT `+monitorColumns+` FROM monitors WHERE component_id = ? ORDER BY name COLLATE NOCASE, id`, componentID)
 }

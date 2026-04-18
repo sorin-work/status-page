@@ -43,11 +43,14 @@ type Monitor struct {
 	Keyword string
 	// Retries is how many extra failed checks are tolerated before the
 	// monitor is marked down.
-	Retries   int
-	Paused    bool
-	Status    Status
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Retries int
+	// ComponentID links the monitor to a status page component; zero
+	// means it is internal only.
+	ComponentID int64
+	Paused      bool
+	Status      Status
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // Result is the outcome of a single check.

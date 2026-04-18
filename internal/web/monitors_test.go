@@ -54,6 +54,28 @@ func TestCreateMonitor(t *testing.T) {
 	}
 }
 
+func TestCreateMonitorWithComponent(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	comp, err := st.CreateComponent(context.Background(), store.Component{Name: "API"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, csrf := login(t, srv)
+	if body := getWith(t, srv, "/admin/monitors/new", c).Body.String(); !strings.Contains(body, ">API</option>") {
+		t.Error("component missing from the form")
+	}
+	form := monitorValues(csrf)
+	form.Set("component_id", itoa(comp.ID))
+	if rec := postForm(t, srv, "/admin/monitors", form, c); rec.Code != http.StatusSeeOther {
+		t.Fatalf("create: %d", rec.Code)
+	}
+	list, _ := st.ListMonitors(context.Background())
+	if len(list) != 1 || list[0].ComponentID != comp.ID {
+		t.Errorf("monitor = %+v", list)
+	}
+}
+
 func TestCreateMonitorValidation(t *testing.T) {
 	srv, st := newTestServer(t)
 	createAdmin(t, st)
