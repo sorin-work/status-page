@@ -1,0 +1,25 @@
+{{define "content"}}
+{{with .Data}}
+<section class="banner {{.Overall}}">
+  <h1>{{.Headline}}</h1>
+</section>
+
+{{if .Components}}
+<section class="components card">
+  {{range .Components}}
+  <div class="component">
+    <div class="component-head">
+      <div>
+        <strong>{{.Component.Name}}</strong>
+        {{with .Component.Description}}<div class="muted small">{{.}}</div>{{end}}
+      </div>
+      <span class="level {{.Level}}">{{.Level.Label}}</span>
+    </div>
+  </div>
+  {{end}}
+</section>
+{{else}}
+<div class="card empty">Nothing to report yet.</div>
+{{end}}
+{{end}}
+{{end}}

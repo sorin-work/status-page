@@ -480,3 +480,81 @@ form.inline {
   max-width: 360px;
   margin: 64px auto;
 }
+
+/* Public status page */
+
+.banner {
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  color: #fff;
+  background: var(--nodata);
+}
+
+.banner h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.banner.operational {
+  background: var(--up);
+}
+
+.banner.partial_outage {
+  background: var(--degraded);
+}
+
+.banner.major_outage {
+  background: var(--down);
+}
+
+.banner.maintenance {
+  background: var(--maintenance);
+}
+
+.banner.nodata {
+  color: var(--text);
+}
+
+.components {
+  padding: 0;
+}
+
+.component {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.component:last-child {
+  border-bottom: none;
+}
+
+.component-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.level {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.level.operational {
+  color: var(--up);
+}
+
+.level.partial_outage {
+  color: var(--degraded);
+}
+
+.level.major_outage {
+  color: var(--down);
+}
+
+.level.maintenance {
+  color: var(--maintenance);
+}

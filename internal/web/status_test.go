@@ -1,0 +1,44 @@
+package web
+
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"github.com/sorin-work/status-page/internal/monitor"
+	"github.com/sorin-work/status-page/internal/store"
+)
+
+func TestStatusPageEmpty(t *testing.T) {
+	srv, _ := newTestServer(t)
+	body := get(t, srv, "/").Body.String()
+	if !strings.Contains(body, "Nothing to report yet") || !strings.Contains(body, "Status unknown") {
+		t.Error("unexpected empty status page")
+	}
+}
+
+func TestStatusPageComponents(t *testing.T) {
+	srv, st := newTestServer(t)
+	ctx := context.Background()
+	api, _ := st.CreateComponent(ctx, store.Component{Name: "API", Description: "REST and webhooks"})
+	web, _ := st.CreateComponent(ctx, store.Component{Name: "Website"})
+	for _, tc := range []struct {
+		comp   int64
+		status monitor.Status
+	}{{api.ID, monitor.StatusUp}, {api.ID, monitor.StatusDown}, {web.ID, monitor.StatusUp}} {
+		m := addMonitor(t, st, "m")
+		m.ComponentID = tc.comp
+		if _, err := st.UpdateMonitor(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.SetMonitorStatus(ctx, m.ID, tc.status); err != nil {
+			t.Fatal(err)
+		}
+	}
+	body := get(t, srv, "/").Body.String()
+	for _, want := range []string{"Some systems are experiencing issues", "REST and webhooks", "Partial outage", "Operational"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("status page is missing %q", want)
+		}
+	}
+}
