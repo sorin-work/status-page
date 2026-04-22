@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sorin-work/status-page/internal/incident"
+	"github.com/sorin-work/status-page/internal/store"
 )
 
 func TestIncidentListEmpty(t *testing.T) {
@@ -44,12 +45,20 @@ func TestCreateIncident(t *testing.T) {
 	createAdmin(t, st)
 	c, csrf := login(t, srv)
 
+	comp, err := st.CreateComponent(context.Background(), store.Component{Name: "Payments"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	rec := postForm(t, srv, "/admin/incidents", url.Values{
 		"csrf": {csrf}, "title": {"Payments delayed"}, "status": {"identified"},
 		"impact": {"major"}, "message": {"Our payment provider is degraded."},
+		"component_id": {itoa(comp.ID)},
 	}, c)
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
+	}
+	if list, _ := st.ListIncidents(context.Background(), 1, 0); list[0].ComponentID != comp.ID {
+		t.Errorf("component not saved: %+v", list[0])
 	}
 	body := getWith(t, srv, rec.Header().Get("Location"), c).Body.String()
 	for _, want := range []string{"Payments delayed", "identified", "Our payment provider is degraded."} {

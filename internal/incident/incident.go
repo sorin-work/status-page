@@ -63,12 +63,14 @@ type Incident struct {
 	Status Status
 	Impact Impact
 	// MonitorID is set for incidents opened automatically by a monitor.
-	MonitorID  int64
-	Automatic  bool
-	StartedAt  time.Time
-	ResolvedAt time.Time
-	UpdatedAt  time.Time
-	Updates    []Update
+	MonitorID int64
+	// ComponentID is the affected status page component, if any.
+	ComponentID int64
+	Automatic   bool
+	StartedAt   time.Time
+	ResolvedAt  time.Time
+	UpdatedAt   time.Time
+	Updates     []Update
 }
 
 // Resolved reports whether the incident is over.

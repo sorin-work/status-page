@@ -11,7 +11,7 @@ import (
 )
 
 const incidentColumns = `i.id, i.title, i.status, i.impact, COALESCE(i.monitor_id, 0), i.automatic,
-	i.started_at, COALESCE(i.resolved_at, 0), i.updated_at`
+	i.started_at, COALESCE(i.resolved_at, 0), i.updated_at, COALESCE(i.component_id, 0)`
 
 func scanIncident(r rowScanner) (incident.Incident, error) {
 	var (
@@ -20,7 +20,7 @@ func scanIncident(r rowScanner) (incident.Incident, error) {
 		started, resolved, updated int64
 	)
 	if err := r.Scan(&inc.ID, &inc.Title, &status, &impact, &inc.MonitorID, &inc.Automatic,
-		&started, &resolved, &updated); err != nil {
+		&started, &resolved, &updated, &inc.ComponentID); err != nil {
 		return incident.Incident{}, err
 	}
 	inc.Status = incident.Status(status)
@@ -62,10 +62,10 @@ func (s *Store) CreateIncident(ctx context.Context, inc incident.Incident, messa
 	defer func() { _ = tx.Rollback() }()
 
 	res, err := tx.ExecContext(ctx, `INSERT INTO incidents
-		(title, status, impact, monitor_id, automatic, started_at, resolved_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		(title, status, impact, monitor_id, automatic, started_at, resolved_at, updated_at, component_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		strings.TrimSpace(inc.Title), string(inc.Status), string(inc.Impact), nullableID(inc.MonitorID),
-		inc.Automatic, inc.StartedAt.Unix(), resolved, inc.UpdatedAt.Unix())
+		inc.Automatic, inc.StartedAt.Unix(), resolved, inc.UpdatedAt.Unix(), nullableID(inc.ComponentID))
 	if err != nil {
 		return incident.Incident{}, err
 	}

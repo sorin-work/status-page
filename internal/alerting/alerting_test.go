@@ -24,7 +24,11 @@ func setup(t *testing.T) (*Manager, *store.Store, monitor.Monitor) {
 	if err := st.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	m, err := st.CreateMonitor(ctx, monitor.Monitor{Name: "Checkout", Type: monitor.TypeHTTP, Target: "https://x.test", Interval: time.Minute, Timeout: time.Second})
+	comp, err := st.CreateComponent(ctx, store.Component{Name: "Shop"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := st.CreateMonitor(ctx, monitor.Monitor{Name: "Checkout", Type: monitor.TypeHTTP, Target: "https://x.test", Interval: time.Minute, Timeout: time.Second, ComponentID: comp.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +49,7 @@ func TestDownOpensIncident(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if inc.Title != "Checkout is down" || inc.Impact != incident.ImpactMajor || !inc.StartedAt.Equal(at) {
+	if inc.Title != "Checkout is down" || inc.Impact != incident.ImpactMajor || !inc.StartedAt.Equal(at) || inc.ComponentID != m.ComponentID {
 		t.Errorf("incident = %+v", inc)
 	}
 	full, _ := st.GetIncident(ctx, inc.ID)

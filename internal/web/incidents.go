@@ -34,13 +34,15 @@ func (s *Server) handleIncidents(w http.ResponseWriter, r *http.Request) {
 }
 
 type incidentForm struct {
-	Title    string
-	Status   string
-	Impact   string
-	Message  string
-	Errors   map[string]string
-	Statuses []incident.Status
-	Impacts  []incident.Impact
+	Title       string
+	Status      string
+	Impact      string
+	Message     string
+	Errors      map[string]string
+	Statuses    []incident.Status
+	Impacts     []incident.Impact
+	ComponentID int64
+	Components  []store.Component
 }
 
 func newIncidentForm() incidentForm {
@@ -53,8 +55,18 @@ func newIncidentForm() incidentForm {
 	}
 }
 
+func (s *Server) renderIncidentForm(w http.ResponseWriter, r *http.Request, status int, f incidentForm) {
+	components, err := s.store.ListComponents(r.Context())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	f.Components = components
+	s.render(w, r, status, "incident_form", page{Title: "New incident", Nav: "incidents", Data: f})
+}
+
 func (s *Server) handleNewIncident(w http.ResponseWriter, r *http.Request) {
-	s.render(w, r, http.StatusOK, "incident_form", page{Title: "New incident", Nav: "incidents", Data: newIncidentForm()})
+	s.renderIncidentForm(w, r, http.StatusOK, newIncidentForm())
 }
 
 func (s *Server) handleCreateIncident(w http.ResponseWriter, r *http.Request) {
@@ -63,18 +75,25 @@ func (s *Server) handleCreateIncident(w http.ResponseWriter, r *http.Request) {
 	f.Status = r.PostFormValue("status")
 	f.Impact = r.PostFormValue("impact")
 	f.Message = r.PostFormValue("message")
+	f.ComponentID, _ = strconv.ParseInt(r.PostFormValue("component_id"), 10, 64)
 
 	status, impact := incident.Status(f.Status), incident.Impact(f.Impact)
 	var verr incident.ValidationError
 	if err := incident.ValidateNew(f.Title, status, impact, f.Message); errors.As(err, &verr) {
 		f.Errors = verr
-		s.render(w, r, http.StatusUnprocessableEntity, "incident_form", page{Title: "New incident", Nav: "incidents", Data: f})
+		s.renderIncidentForm(w, r, http.StatusUnprocessableEntity, f)
 		return
 	}
+	if f.ComponentID != 0 {
+		if _, err := s.store.GetComponent(r.Context(), f.ComponentID); err != nil {
+			f.ComponentID = 0
+		}
+	}
 	inc, err := s.store.CreateIncident(r.Context(), incident.Incident{
-		Title:  f.Title,
-		Status: status,
-		Impact: impact,
+		Title:       f.Title,
+		Status:      status,
+		Impact:      impact,
+		ComponentID: f.ComponentID,
 	}, f.Message)
 	if err != nil {
 		s.serverError(w, r, err)

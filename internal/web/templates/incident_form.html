@@ -26,6 +26,13 @@
       {{with index $f.Errors "impact"}}<div class="error">Impact {{.}}</div>{{end}}
     </div>
   </div>
+  <div class="field">
+    <label for="component_id">Affected component</label>
+    <select id="component_id" name="component_id">
+      <option value="0">None / whole service</option>
+      {{range $f.Components}}<option value="{{.ID}}"{{if eq .ID $f.ComponentID}} selected{{end}}>{{.Name}}</option>{{end}}
+    </select>
+  </div>
   <div class="field{{if index $f.Errors "message"}} invalid{{end}}">
     <label for="message">First update</label>
     <textarea id="message" name="message" placeholder="What is happening and what are you doing about it?" required>{{$f.Message}}</textarea>

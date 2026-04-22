@@ -101,12 +101,13 @@ func (m *Manager) monitorDown(ctx context.Context, t scheduler.Transition) error
 		at = m.now()
 	}
 	inc := incident.Incident{
-		Title:     t.Monitor.Name + " is down",
-		Status:    incident.StatusInvestigating,
-		Impact:    incident.ImpactMajor,
-		MonitorID: t.Monitor.ID,
-		Automatic: true,
-		StartedAt: at,
+		Title:       t.Monitor.Name + " is down",
+		Status:      incident.StatusInvestigating,
+		Impact:      incident.ImpactMajor,
+		MonitorID:   t.Monitor.ID,
+		ComponentID: t.Monitor.ComponentID,
+		Automatic:   true,
+		StartedAt:   at,
 	}
 	msg := "Checks are failing."
 	if t.Result.Error != "" {
