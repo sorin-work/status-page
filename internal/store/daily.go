@@ -50,3 +50,25 @@ func (s *Store) DailyStats(ctx context.Context, monitorID int64, from, to time.T
 	}
 	return out, rows.Err()
 }
+
+// ComponentDailyStats returns the rollups of every monitor in a component
+// between the two days (inclusive).
+func (s *Store) ComponentDailyStats(ctx context.Context, componentID int64, from, to time.Time) ([]DailyStat, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT d.monitor_id, d.day, d.total, d.up, d.latency_sum_ms
+		FROM daily_stats d JOIN monitors m ON m.id = d.monitor_id
+		WHERE m.component_id = ? AND d.day >= ? AND d.day <= ?
+		ORDER BY d.day, d.monitor_id`, componentID, Day(from), Day(to))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []DailyStat
+	for rows.Next() {
+		var d DailyStat
+		if err := rows.Scan(&d.MonitorID, &d.Day, &d.Total, &d.Up, &d.LatencySumMS); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}

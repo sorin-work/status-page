@@ -558,3 +558,38 @@ form.inline {
 .level.maintenance {
   color: var(--maintenance);
 }
+
+.bars {
+  display: flex;
+  gap: 2px;
+  height: 34px;
+  margin-top: 12px;
+}
+
+.bar {
+  flex: 1;
+  border-radius: 2px;
+  background: var(--nodata);
+}
+
+.bar.up {
+  background: var(--up);
+}
+
+.bar.degraded {
+  background: var(--degraded);
+}
+
+.bar.down {
+  background: var(--down);
+}
+
+.bar:hover {
+  opacity: 0.75;
+}
+
+.bars-legend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+}

@@ -56,3 +56,34 @@ func TestDayUsesUTC(t *testing.T) {
 		t.Error("empty day should have zero latency")
 	}
 }
+
+func TestComponentDailyStats(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	comp, err := s.CreateComponent(ctx, Component{Name: "API"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := createMonitor(t, s, "a")
+	b := createMonitor(t, s, "b")
+	other := createMonitor(t, s, "other")
+	for _, m := range []int64{a.ID, b.ID} {
+		mon, _ := s.GetMonitor(ctx, m)
+		mon.ComponentID = comp.ID
+		if _, err := s.UpdateMonitor(ctx, mon); err != nil {
+			t.Fatal(err)
+		}
+	}
+	day := time.Date(2026, 4, 22, 8, 0, 0, 0, time.UTC)
+	recordChecks(t, s, a.ID, day, time.Minute, true, true)
+	recordChecks(t, s, b.ID, day, time.Minute, false)
+	recordChecks(t, s, other.ID, day, time.Minute, false)
+
+	stats, err := s.ComponentDailyStats(ctx, comp.ID, day, day)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stats) != 2 || stats[0].MonitorID != a.ID || stats[0].Up != 2 || stats[1].Up != 0 {
+		t.Errorf("stats = %+v", stats)
+	}
+}

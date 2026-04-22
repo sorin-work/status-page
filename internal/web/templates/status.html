@@ -15,6 +15,14 @@
       </div>
       <span class="level {{.Level}}">{{.Level.Label}}</span>
     </div>
+    <div class="bars" role="img" aria-label="Uptime over the last 90 days">
+      {{range .Bars}}<span class="bar {{.Level}}" title="{{.Day.Format "Jan 2, 2006"}}: {{if .Ratio.HasData}}{{.Ratio}} uptime{{else}}no data{{end}}"></span>{{end}}
+    </div>
+    <div class="bars-legend muted small">
+      <span>90 days ago</span>
+      <span>{{if .Uptime.HasData}}{{.Uptime}} uptime{{end}}</span>
+      <span>Today</span>
+    </div>
   </div>
   {{end}}
 </section>

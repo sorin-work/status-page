@@ -4,10 +4,35 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sorin-work/status-page/internal/monitor"
 	"github.com/sorin-work/status-page/internal/store"
 )
+
+func TestStatusPageBars(t *testing.T) {
+	srv, st := newTestServer(t)
+	ctx := context.Background()
+	comp, _ := st.CreateComponent(ctx, store.Component{Name: "API"})
+	m := addMonitor(t, st, "api")
+	m.ComponentID = comp.ID
+	if _, err := st.UpdateMonitor(ctx, m); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.RecordCheck(ctx, monitor.Result{MonitorID: m.ID, CheckedAt: time.Now(), Up: true}); err != nil {
+		t.Fatal(err)
+	}
+	body := get(t, srv, "/").Body.String()
+	if n := strings.Count(body, `class="bar `); n != 90 {
+		t.Errorf("%d bars, want 90", n)
+	}
+	if n := strings.Count(body, `class="bar up"`); n != 1 {
+		t.Errorf("%d green bars, want 1", n)
+	}
+	if !strings.Contains(body, "100.00% uptime") {
+		t.Error("missing 90 day uptime")
+	}
+}
 
 func TestStatusPageEmpty(t *testing.T) {
 	srv, _ := newTestServer(t)
