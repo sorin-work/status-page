@@ -2,7 +2,10 @@
 // from the monitors behind them.
 package component
 
-import "github.com/sorin-work/status-page/internal/monitor"
+import (
+	"github.com/sorin-work/status-page/internal/incident"
+	"github.com/sorin-work/status-page/internal/monitor"
+)
 
 // Level is the public state of a component or of the whole page.
 type Level string
@@ -99,5 +102,18 @@ func Headline(l Level) string {
 		return "Major outage"
 	default:
 		return "Status unknown"
+	}
+}
+
+// ForIncident is the level an open incident of the given impact implies
+// for the component it affects.
+func ForIncident(impact incident.Impact) Level {
+	switch impact {
+	case incident.ImpactMinor:
+		return PartialOutage
+	case incident.ImpactMajor, incident.ImpactCritical:
+		return MajorOutage
+	default:
+		return Operational
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sorin-work/status-page/internal/incident"
 	"github.com/sorin-work/status-page/internal/monitor"
 	"github.com/sorin-work/status-page/internal/store"
 )
@@ -31,6 +32,24 @@ func TestStatusPageBars(t *testing.T) {
 	}
 	if !strings.Contains(body, "100.00% uptime") {
 		t.Error("missing 90 day uptime")
+	}
+}
+
+func TestStatusPageActiveIncident(t *testing.T) {
+	srv, st := newTestServer(t)
+	ctx := context.Background()
+	comp, _ := st.CreateComponent(ctx, store.Component{Name: "Checkout"})
+	_, err := st.CreateIncident(ctx, incident.Incident{
+		Title: "Card payments failing", Status: incident.StatusIdentified, Impact: incident.ImpactMajor, ComponentID: comp.ID,
+	}, "The card processor is returning errors.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := get(t, srv, "/").Body.String()
+	for _, want := range []string{"Card payments failing", "The card processor is returning errors.", "Major outage"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("status page is missing %q", want)
+		}
 	}
 }
 

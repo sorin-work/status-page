@@ -204,3 +204,19 @@ func (s *Store) queryIncidents(ctx context.Context, query string, args ...any) (
 	}
 	return out, rows.Err()
 }
+
+// ListOpenIncidents returns unresolved incidents with their timelines,
+// newest first.
+func (s *Store) ListOpenIncidents(ctx context.Context) ([]incident.Incident, error) {
+	list, err := s.queryIncidents(ctx, `SELECT `+incidentColumns+` FROM incidents i
+		WHERE i.status != 'resolved' ORDER BY i.started_at DESC, i.id DESC`)
+	if err != nil {
+		return nil, err
+	}
+	for k := range list {
+		if list[k].Updates, err = s.incidentUpdates(ctx, list[k].ID); err != nil {
+			return nil, err
+		}
+	}
+	return list, nil
+}

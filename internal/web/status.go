@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/sorin-work/status-page/internal/component"
+	"github.com/sorin-work/status-page/internal/incident"
 	"github.com/sorin-work/status-page/internal/store"
 	"github.com/sorin-work/status-page/internal/uptime"
 )
@@ -19,11 +20,17 @@ type statusPage struct {
 	Overall    component.Level
 	Headline   string
 	Components []publicComponent
+	Active     []incident.Incident
 }
 
 func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	components, err := s.store.ListComponents(ctx)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	active, err := s.store.ListOpenIncidents(ctx)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -46,6 +53,11 @@ func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pc := publicComponent{Component: c, Level: component.LevelFor(monitors)}
+		for _, inc := range active {
+			if l := component.ForIncident(inc.Impact); inc.ComponentID == c.ID && component.Worse(l, pc.Level) {
+				pc.Level = l
+			}
+		}
 		pc.Bars = uptime.Bars(stats, today, uptime.HistoryDays)
 		for _, b := range pc.Bars {
 			pc.Uptime = pc.Uptime.Add(b.Ratio)
@@ -53,6 +65,13 @@ func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 		levels = append(levels, pc.Level)
 		data.Components = append(data.Components, pc)
 	}
+	// Incidents that are not tied to a component affect the whole page.
+	for _, inc := range active {
+		if inc.ComponentID == 0 {
+			levels = append(levels, component.ForIncident(inc.Impact))
+		}
+	}
+	data.Active = active
 	data.Overall = component.Overall(levels)
 	data.Headline = component.Headline(data.Overall)
 	s.render(w, r, http.StatusOK, "status", page{Data: data})

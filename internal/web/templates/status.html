@@ -4,6 +4,16 @@
   <h1>{{.Headline}}</h1>
 </section>
 
+{{range .Active}}
+<section class="card incident-card {{.Impact}}">
+  <h2><a href="/incidents/{{.ID}}">{{.Title}}</a></h2>
+  {{with index .Updates 0}}
+  <p><strong class="capitalize">{{.Status}}</strong> – {{nl2br .Message}}</p>
+  <div class="muted small">Updated {{datetime .CreatedAt}}</div>
+  {{end}}
+</section>
+{{end}}
+
 {{if .Components}}
 <section class="components card">
   {{range .Components}}

@@ -3,6 +3,7 @@ package component
 import (
 	"testing"
 
+	"github.com/sorin-work/status-page/internal/incident"
 	"github.com/sorin-work/status-page/internal/monitor"
 )
 
@@ -50,6 +51,20 @@ func TestOverall(t *testing.T) {
 	}
 	if got := Overall([]Level{PartialOutage, MajorOutage}); got != MajorOutage {
 		t.Errorf("got %s", got)
+	}
+}
+
+func TestForIncident(t *testing.T) {
+	cases := map[incident.Impact]Level{
+		incident.ImpactNone:     Operational,
+		incident.ImpactMinor:    PartialOutage,
+		incident.ImpactMajor:    MajorOutage,
+		incident.ImpactCritical: MajorOutage,
+	}
+	for impact, want := range cases {
+		if got := ForIncident(impact); got != want {
+			t.Errorf("%s: got %s, want %s", impact, got, want)
+		}
 	}
 }
 

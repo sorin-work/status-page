@@ -122,3 +122,21 @@ func TestOpenIncidentForMonitor(t *testing.T) {
 		t.Errorf("monitor_id = %d after delete", got.MonitorID)
 	}
 }
+
+func TestListOpenIncidents(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	start := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	open, _ := s.CreateIncident(ctx, newIncident("open", start), "investigating")
+	done, _ := s.CreateIncident(ctx, newIncident("done", start.Add(time.Hour)), "investigating")
+	if _, err := s.AddIncidentUpdate(ctx, done.ID, incident.StatusResolved, "fixed", start.Add(2*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	list, err := s.ListOpenIncidents(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 1 || list[0].ID != open.ID || len(list[0].Updates) != 1 {
+		t.Errorf("open incidents = %+v", list)
+	}
+}

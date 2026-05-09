@@ -593,3 +593,24 @@ form.inline {
   justify-content: space-between;
   margin-top: 4px;
 }
+
+.incident-card {
+  border-left: 4px solid var(--degraded);
+}
+
+.incident-card.major,
+.incident-card.critical {
+  border-left-color: var(--down);
+}
+
+.incident-card.none {
+  border-left-color: var(--maintenance);
+}
+
+.incident-card h2 {
+  margin: 0 0 8px;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
