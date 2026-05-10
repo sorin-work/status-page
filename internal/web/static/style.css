@@ -614,3 +614,12 @@ form.inline {
 .capitalize {
   text-transform: capitalize;
 }
+
+.past-incident {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.past-incident:last-child {
+  border-bottom: none;
+}

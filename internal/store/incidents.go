@@ -220,3 +220,19 @@ func (s *Store) ListOpenIncidents(ctx context.Context) ([]incident.Incident, err
 	}
 	return list, nil
 }
+
+// ListRecentResolved returns the most recently started resolved incidents,
+// up to limit, with their timelines.
+func (s *Store) ListRecentResolved(ctx context.Context, limit int) ([]incident.Incident, error) {
+	list, err := s.queryIncidents(ctx, `SELECT `+incidentColumns+` FROM incidents i
+		WHERE i.status = 'resolved' ORDER BY i.started_at LIMIT ?`, limit)
+	if err != nil {
+		return nil, err
+	}
+	for k := range list {
+		if list[k].Updates, err = s.incidentUpdates(ctx, list[k].ID); err != nil {
+			return nil, err
+		}
+	}
+	return list, nil
+}

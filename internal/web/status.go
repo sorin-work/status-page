@@ -21,7 +21,11 @@ type statusPage struct {
 	Headline   string
 	Components []publicComponent
 	Active     []incident.Incident
+	Past       []incident.Incident
 }
+
+// pastIncidentLimit is how many resolved incidents the status page lists.
+const pastIncidentLimit = 10
 
 func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -71,7 +75,13 @@ func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 			levels = append(levels, component.ForIncident(inc.Impact))
 		}
 	}
+	past, err := s.store.ListRecentResolved(ctx, pastIncidentLimit)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	data.Active = active
+	data.Past = past
 	data.Overall = component.Overall(levels)
 	data.Headline = component.Headline(data.Overall)
 	s.render(w, r, http.StatusOK, "status", page{Data: data})

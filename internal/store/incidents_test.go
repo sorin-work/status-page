@@ -140,3 +140,27 @@ func TestListOpenIncidents(t *testing.T) {
 		t.Errorf("open incidents = %+v", list)
 	}
 }
+
+func TestListRecentResolved(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	start := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	for i, title := range []string{"a", "b", "open"} {
+		inc, err := s.CreateIncident(ctx, newIncident(title, start.Add(time.Duration(i)*time.Hour)), "x")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if title != "open" {
+			if _, err := s.AddIncidentUpdate(ctx, inc.ID, incident.StatusResolved, "done", start.Add(10*time.Hour)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	list, err := s.ListRecentResolved(ctx, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 2 || len(list[0].Updates) != 2 {
+		t.Errorf("resolved = %+v", list)
+	}
+}

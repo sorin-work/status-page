@@ -53,6 +53,29 @@ func TestStatusPageActiveIncident(t *testing.T) {
 	}
 }
 
+func TestStatusPagePastIncidents(t *testing.T) {
+	srv, st := newTestServer(t)
+	ctx := context.Background()
+	if body := get(t, srv, "/").Body.String(); !strings.Contains(body, "No incidents reported") {
+		t.Error("missing empty state for past incidents")
+	}
+	for _, title := range []string{"DNS outage", "Slow search"} {
+		inc, err := st.CreateIncident(ctx, incident.Incident{Title: title, Status: incident.StatusInvestigating, Impact: incident.ImpactMinor, StartedAt: time.Now().Add(-2 * time.Hour)}, "Looking.")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := st.AddIncidentUpdate(ctx, inc.ID, incident.StatusResolved, "All good now.", time.Now().Add(-time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	body := get(t, srv, "/").Body.String()
+	for _, want := range []string{"DNS outage", "Slow search", "All good now.", "lasted 1h"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("status page is missing %q", want)
+		}
+	}
+}
+
 func TestStatusPageEmpty(t *testing.T) {
 	srv, _ := newTestServer(t)
 	body := get(t, srv, "/").Body.String()

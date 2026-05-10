@@ -39,5 +39,20 @@
 {{else}}
 <div class="card empty">Nothing to report yet.</div>
 {{end}}
+
+<h2>Past incidents</h2>
+{{if .Past}}
+<div class="card past-incidents">
+  {{range .Past}}
+  <div class="past-incident">
+    <a href="/incidents/{{.ID}}"><strong>{{.Title}}</strong></a>
+    <div class="muted small">{{datetime .StartedAt}} · lasted {{duration (.Duration now)}}</div>
+    {{with index .Updates 0}}<div class="small">{{nl2br .Message}}</div>{{end}}
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="card empty">No incidents reported.</div>
+{{end}}
 {{end}}
 {{end}}
