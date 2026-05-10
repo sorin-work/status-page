@@ -1,0 +1,20 @@
+{{define "content"}}
+{{$i := .Data.Incident}}
+<p><a href="/">&larr; Back to status</a></p>
+<div class="card">
+  <h1>{{$i.Title}}</h1>
+  <div class="muted small">
+    <span class="badge {{$i.Impact}}">{{$i.Impact}} impact</span>
+    {{with .Data.Component}}· affects {{.}}{{end}}
+    · started {{datetime $i.StartedAt}}{{if $i.Resolved}} · resolved {{datetime $i.ResolvedAt}} after {{duration ($i.Duration now)}}{{end}}
+  </div>
+</div>
+<ol class="timeline">
+  {{range $i.Updates}}
+  <li>
+    <div class="when"><strong class="capitalize">{{.Status}}</strong> <span class="muted small">{{datetime .CreatedAt}}</span></div>
+    <div class="message">{{nl2br .Message}}</div>
+  </li>
+  {{end}}
+</ol>
+{{end}}

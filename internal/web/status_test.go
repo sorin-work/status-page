@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -73,6 +74,35 @@ func TestStatusPagePastIncidents(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("status page is missing %q", want)
 		}
+	}
+}
+
+func TestPublicIncidentPage(t *testing.T) {
+	srv, st := newTestServer(t)
+	ctx := context.Background()
+	comp, _ := st.CreateComponent(ctx, store.Component{Name: "Search"})
+	inc, err := st.CreateIncident(ctx, incident.Incident{Title: "Search is slow", Status: incident.StatusInvestigating, Impact: incident.ImpactMinor, ComponentID: comp.ID}, "Investigating slow queries.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.AddIncidentUpdate(ctx, inc.ID, incident.StatusMonitoring, "An index was added.", time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	rec := get(t, srv, "/incidents/"+itoa(inc.ID))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{"Search is slow", "affects Search", "Investigating slow queries.", "An index was added."} {
+		if !strings.Contains(body, want) {
+			t.Errorf("incident page is missing %q", want)
+		}
+	}
+	if strings.Contains(body, "csrf") {
+		t.Error("public page should not contain admin forms")
+	}
+	if rec := get(t, srv, "/incidents/999"); rec.Code != http.StatusNotFound {
+		t.Errorf("missing incident: %d", rec.Code)
 	}
 }
 

@@ -86,3 +86,20 @@ func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 	data.Headline = component.Headline(data.Overall)
 	s.render(w, r, http.StatusOK, "status", page{Data: data})
 }
+
+func (s *Server) handlePublicIncident(w http.ResponseWriter, r *http.Request) {
+	inc, ok := s.loadIncident(w, r)
+	if !ok {
+		return
+	}
+	var compName string
+	if inc.ComponentID != 0 {
+		if c, err := s.store.GetComponent(r.Context(), inc.ComponentID); err == nil {
+			compName = c.Name
+		}
+	}
+	s.render(w, r, http.StatusOK, "public_incident", page{Title: inc.Title, Data: struct {
+		Incident  incident.Incident
+		Component string
+	}{inc, compName}})
+}
