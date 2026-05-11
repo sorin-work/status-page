@@ -623,3 +623,15 @@ form.inline {
 .past-incident:last-child {
   border-bottom: none;
 }
+
+.site-footer .inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.site-footer a {
+  color: var(--muted);
+}

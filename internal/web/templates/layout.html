@@ -29,5 +29,11 @@
   <main class="container">
     {{template "content" .}}
   </main>
+  <footer class="site-footer">
+    <div class="inner muted small">
+      <span>Updated {{datetime now}}</span>
+      {{if not .User}}<a href="/admin/login">Admin</a>{{end}}
+    </div>
+  </footer>
 </body>
 </html>{{end}}
