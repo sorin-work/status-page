@@ -20,6 +20,8 @@ type Options struct {
 	SessionTTL time.Duration
 	// CookieSecure sets the Secure flag on the session cookie.
 	CookieSecure bool
+	// Location is the time zone used to show dates. Defaults to UTC.
+	Location *time.Location
 }
 
 // Server is the HTTP handler of the application.
@@ -33,6 +35,7 @@ type Server struct {
 
 	sessionTTL   time.Duration
 	cookieSecure bool
+	loc          *time.Location
 }
 
 // New builds a Server and registers its routes.
@@ -46,6 +49,9 @@ func New(opts Options) (*Server, error) {
 	if opts.SessionTTL <= 0 {
 		opts.SessionTTL = 7 * 24 * time.Hour
 	}
+	if opts.Location == nil {
+		opts.Location = time.UTC
+	}
 	if opts.SiteTitle == "" {
 		opts.SiteTitle = "Status"
 	}
@@ -58,6 +64,7 @@ func New(opts Options) (*Server, error) {
 
 		sessionTTL:   opts.SessionTTL,
 		cookieSecure: opts.CookieSecure,
+		loc:          opts.Location,
 	}
 	tmpl, err := loadTemplates(s.funcs())
 	if err != nil {

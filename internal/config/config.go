@@ -30,6 +30,8 @@ type Config struct {
 	SessionTTL time.Duration
 	// CookieSecure marks the session cookie as HTTPS only.
 	CookieSecure bool
+	// Location is the time zone dates are shown in.
+	Location *time.Location
 }
 
 // Load builds a Config from the given lookup function, usually os.Getenv.
@@ -43,6 +45,7 @@ func Load(getenv func(string) string) (Config, error) {
 		AdminUsername:   "admin",
 		SiteTitle:       "Status",
 		SessionTTL:      7 * 24 * time.Hour,
+		Location:        time.UTC,
 	}
 
 	if v := strings.TrimSpace(getenv("LISTEN_ADDR")); v != "" {
@@ -90,6 +93,13 @@ func Load(getenv func(string) string) (Config, error) {
 			return Config{}, err
 		}
 		cfg.CookieSecure = b
+	}
+	if v := strings.TrimSpace(getenv("TIMEZONE")); v != "" {
+		loc, err := time.LoadLocation(v)
+		if err != nil {
+			return Config{}, fmt.Errorf("TIMEZONE: unknown time zone %q", v)
+		}
+		cfg.Location = loc
 	}
 	if v := strings.TrimSpace(getenv("CHECK_WORKERS")); v != "" {
 		n, err := strconv.Atoi(v)

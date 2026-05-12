@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	_ "time/tzdata" // TIMEZONE works in minimal containers too
 
 	"github.com/sorin-work/status-page/internal/alerting"
 	"github.com/sorin-work/status-page/internal/auth"
@@ -67,6 +68,7 @@ func run() error {
 		SiteTitle:    cfg.SiteTitle,
 		SessionTTL:   cfg.SessionTTL,
 		CookieSecure: cfg.CookieSecure,
+		Location:     cfg.Location,
 	})
 	if err != nil {
 		return err
