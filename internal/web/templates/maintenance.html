@@ -1,0 +1,80 @@
+{{define "content"}}
+{{$d := .Data}}
+<div class="page-head">
+  <h1>Maintenance</h1>
+</div>
+<p class="muted">During a maintenance window the affected components show "Under maintenance" on the status page and failing monitors do not open incidents.</p>
+
+<h2>Scheduled and in progress</h2>
+{{if $d.Current}}
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Window</th><th>Component</th><th>Starts</th><th>Ends</th><th></th></tr></thead>
+    <tbody>
+      {{range $d.Current}}
+      <tr>
+        <td><strong>{{.Title}}</strong>{{with .Description}}<div class="muted small">{{.}}</div>{{end}}</td>
+        <td>{{if .ComponentID}}{{index $d.Components .ComponentID}}{{else}}All components{{end}}</td>
+        <td>{{datetime .StartsAt}}{{if .Active now}} <span class="badge in_progress">in progress</span>{{end}}</td>
+        <td>{{datetime .EndsAt}}</td>
+        <td></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="card empty">No maintenance planned.</div>
+{{end}}
+
+{{$f := $d.Form}}
+<form method="post" action="/admin/maintenance" class="card stacked">
+  <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+  <h2>Schedule maintenance</h2>
+  <div class="field{{if index $f.Errors "title"}} invalid{{end}}">
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" value="{{$f.Title}}" placeholder="Database upgrade" required>
+    {{with index $f.Errors "title"}}<div class="error">Title {{.}}</div>{{end}}
+  </div>
+  <div class="field">
+    <label for="description">Description</label>
+    <textarea id="description" name="description" placeholder="What will happen and what users should expect">{{$f.Description}}</textarea>
+    {{with index $f.Errors "description"}}<div class="error">Description {{.}}</div>{{end}}
+  </div>
+  <div class="field">
+    <label for="component_id">Component</label>
+    <select id="component_id" name="component_id">
+      <option value="0">All components</option>
+      {{range $d.Choices}}<option value="{{.ID}}"{{if eq .ID $f.ComponentID}} selected{{end}}>{{.Name}}</option>{{end}}
+    </select>
+    {{with index $f.Errors "component_id"}}<div class="error">Component {{.}}</div>{{end}}
+  </div>
+  <div class="row">
+    <div class="field{{if index $f.Errors "starts_at"}} invalid{{end}}">
+      <label for="starts_at">Starts</label>
+      <input type="datetime-local" id="starts_at" name="starts_at" value="{{$f.StartsAt}}" required>
+      {{with index $f.Errors "starts_at"}}<div class="error">Start {{.}}</div>{{end}}
+    </div>
+    <div class="field{{if index $f.Errors "ends_at"}} invalid{{end}}">
+      <label for="ends_at">Ends</label>
+      <input type="datetime-local" id="ends_at" name="ends_at" value="{{$f.EndsAt}}" required>
+      {{with index $f.Errors "ends_at"}}<div class="error">End {{.}}</div>{{end}}
+    </div>
+  </div>
+  <p class="hint muted small">Times are in {{$d.Zone}}.</p>
+  <button type="submit">Schedule</button>
+</form>
+
+{{if $d.Past}}
+<h2>Past maintenance</h2>
+<div class="table-wrap">
+  <table>
+    <tbody>
+      {{range $d.Past}}
+      <tr><td>{{.Title}}</td><td class="muted">{{datetime .StartsAt}} – {{datetime .EndsAt}}</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{end}}

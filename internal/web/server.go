@@ -103,6 +103,9 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /admin/components/{id}", s.admin(s.handleUpdateComponent))
 	s.mux.Handle("POST /admin/components/{id}/delete", s.admin(s.handleDeleteComponent))
 
+	s.mux.Handle("GET /admin/maintenance", s.admin(s.handleMaintenance))
+	s.mux.Handle("POST /admin/maintenance", s.admin(s.handleCreateMaintenance))
+
 	s.mux.Handle("GET /admin/incidents", s.admin(s.handleIncidents))
 	s.mux.Handle("GET /admin/incidents/new", s.admin(s.handleNewIncident))
 	s.mux.Handle("POST /admin/incidents", s.admin(s.handleCreateIncident))
