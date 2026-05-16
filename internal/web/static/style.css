@@ -603,6 +603,7 @@ form.inline {
   border-left-color: var(--down);
 }
 
+.incident-card.maintenance,
 .incident-card.none {
   border-left-color: var(--maintenance);
 }

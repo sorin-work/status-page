@@ -14,6 +14,14 @@
 </section>
 {{end}}
 
+{{range .Maintenance}}
+<section class="card incident-card maintenance">
+  <h2>{{.Title}}</h2>
+  {{if .Active now}}<p><strong>In progress</strong> until {{datetime .EndsAt}}.</p>{{else}}<p><strong>Scheduled</strong> for {{datetime .StartsAt}} – {{datetime .EndsAt}}.</p>{{end}}
+  {{with .Description}}<p>{{nl2br .}}</p>{{end}}
+</section>
+{{end}}
+
 {{if .Components}}
 <section class="components card">
   {{range .Components}}

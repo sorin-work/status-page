@@ -5,6 +5,7 @@ import (
 
 	"github.com/sorin-work/status-page/internal/component"
 	"github.com/sorin-work/status-page/internal/incident"
+	"github.com/sorin-work/status-page/internal/maintenance"
 	"github.com/sorin-work/status-page/internal/store"
 	"github.com/sorin-work/status-page/internal/uptime"
 )
@@ -22,6 +23,8 @@ type statusPage struct {
 	Components []publicComponent
 	Active     []incident.Incident
 	Past       []incident.Incident
+	// Maintenance holds windows that are running or coming up.
+	Maintenance []maintenance.Window
 }
 
 // pastIncidentLimit is how many resolved incidents the status page lists.
@@ -35,6 +38,11 @@ func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	active, err := s.store.ListOpenIncidents(ctx)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	windows, err := s.store.ListCurrentMaintenance(ctx, s.now())
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -57,6 +65,12 @@ func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pc := publicComponent{Component: c, Level: component.LevelFor(monitors)}
+		// Planned work explains failing checks, so it wins over them.
+		for _, win := range windows {
+			if win.Active(s.now()) && win.Covers(c.ID) {
+				pc.Level = component.Maintenance
+			}
+		}
 		for _, inc := range active {
 			if l := component.ForIncident(inc.Impact); inc.ComponentID == c.ID && component.Worse(l, pc.Level) {
 				pc.Level = l
@@ -80,6 +94,7 @@ func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	data.Maintenance = windows
 	data.Active = active
 	data.Past = past
 	data.Overall = component.Overall(levels)

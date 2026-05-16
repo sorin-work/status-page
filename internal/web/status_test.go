@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sorin-work/status-page/internal/incident"
+	"github.com/sorin-work/status-page/internal/maintenance"
 	"github.com/sorin-work/status-page/internal/monitor"
 	"github.com/sorin-work/status-page/internal/store"
 )
@@ -103,6 +104,38 @@ func TestPublicIncidentPage(t *testing.T) {
 	}
 	if rec := get(t, srv, "/incidents/999"); rec.Code != http.StatusNotFound {
 		t.Errorf("missing incident: %d", rec.Code)
+	}
+}
+
+func TestStatusPageMaintenance(t *testing.T) {
+	srv, st := newTestServer(t)
+	ctx := context.Background()
+	db, _ := st.CreateComponent(ctx, store.Component{Name: "Database"})
+	m := addMonitor(t, st, "db")
+	m.ComponentID = db.ID
+	if _, err := st.UpdateMonitor(ctx, m); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetMonitorStatus(ctx, m.ID, monitor.StatusDown); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	for _, w := range []maintenance.Window{
+		{Title: "Failover test", ComponentID: db.ID, StartsAt: now.Add(-time.Minute), EndsAt: now.Add(time.Hour)},
+		{Title: "Network upgrade", StartsAt: now.Add(48 * time.Hour), EndsAt: now.Add(50 * time.Hour)},
+	} {
+		if _, err := st.CreateMaintenance(ctx, w); err != nil {
+			t.Fatal(err)
+		}
+	}
+	body := get(t, srv, "/").Body.String()
+	for _, want := range []string{"Failover test", "In progress", "Network upgrade", "Scheduled", "Under maintenance", "Scheduled maintenance in progress"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("status page is missing %q", want)
+		}
+	}
+	if strings.Contains(body, "Major outage") {
+		t.Error("component under maintenance shown as an outage")
 	}
 }
 
