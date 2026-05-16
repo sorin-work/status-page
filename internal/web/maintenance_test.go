@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sorin-work/status-page/internal/maintenance"
 )
 
 func TestMaintenancePage(t *testing.T) {
@@ -41,6 +43,29 @@ func TestScheduleMaintenance(t *testing.T) {
 	}
 	if body := getWith(t, srv, "/admin/maintenance", c).Body.String(); !strings.Contains(body, "Database upgrade") {
 		t.Error("window not listed")
+	}
+}
+
+func TestEndAndDeleteMaintenance(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	c, csrf := login(t, srv)
+	ctx := context.Background()
+	now := time.Now()
+	running, _ := st.CreateMaintenance(ctx, maintenance.Window{Title: "running", StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour)})
+	later, _ := st.CreateMaintenance(ctx, maintenance.Window{Title: "later", StartsAt: now.Add(time.Hour), EndsAt: now.Add(2 * time.Hour)})
+
+	if rec := postForm(t, srv, "/admin/maintenance/"+itoa(running.ID)+"/end", url.Values{"csrf": {csrf}}, c); rec.Code != http.StatusSeeOther {
+		t.Fatalf("end: %d", rec.Code)
+	}
+	if rec := postForm(t, srv, "/admin/maintenance/"+itoa(later.ID)+"/delete", url.Values{"csrf": {csrf}}, c); rec.Code != http.StatusSeeOther {
+		t.Fatalf("delete: %d", rec.Code)
+	}
+	if list, _ := st.ListCurrentMaintenance(ctx, time.Now().Add(time.Second)); len(list) != 0 {
+		t.Errorf("windows left: %+v", list)
+	}
+	if rec := postForm(t, srv, "/admin/maintenance/"+itoa(later.ID)+"/delete", url.Values{"csrf": {csrf}}, c); rec.Code != http.StatusNotFound {
+		t.Errorf("deleting twice: %d", rec.Code)
 	}
 }
 

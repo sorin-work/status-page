@@ -105,6 +105,8 @@ func (s *Server) routes() {
 
 	s.mux.Handle("GET /admin/maintenance", s.admin(s.handleMaintenance))
 	s.mux.Handle("POST /admin/maintenance", s.admin(s.handleCreateMaintenance))
+	s.mux.Handle("POST /admin/maintenance/{id}/end", s.admin(s.handleEndMaintenance))
+	s.mux.Handle("POST /admin/maintenance/{id}/delete", s.admin(s.handleDeleteMaintenance))
 
 	s.mux.Handle("GET /admin/incidents", s.admin(s.handleIncidents))
 	s.mux.Handle("GET /admin/incidents/new", s.admin(s.handleNewIncident))

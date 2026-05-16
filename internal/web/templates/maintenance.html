@@ -17,7 +17,16 @@
         <td>{{if .ComponentID}}{{index $d.Components .ComponentID}}{{else}}All components{{end}}</td>
         <td>{{datetime .StartsAt}}{{if .Active now}} <span class="badge in_progress">in progress</span>{{end}}</td>
         <td>{{datetime .EndsAt}}</td>
-        <td></td>
+        <td class="actions">
+          <form method="post" action="/admin/maintenance/{{.ID}}/end" class="inline">
+            <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+            <button type="submit" class="link">{{if .Active now}}End now{{else}}Cancel{{end}}</button>
+          </form>
+          <form method="post" action="/admin/maintenance/{{.ID}}/delete" class="inline" onsubmit="return confirm('Delete this maintenance window?')">
+            <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+            <button type="submit" class="link">Delete</button>
+          </form>
+        </td>
       </tr>
       {{end}}
     </tbody>

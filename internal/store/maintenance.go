@@ -77,3 +77,15 @@ func (s *Store) queryWindows(ctx context.Context, query string, args ...any) ([]
 	}
 	return out, rows.Err()
 }
+
+// EndMaintenance finishes a window early at t. Windows that have not
+// started yet are cancelled instead.
+func (s *Store) EndMaintenance(ctx context.Context, id int64, t time.Time) error {
+	res, err := s.db.ExecContext(ctx, `UPDATE maintenance
+		SET ends_at = ?, starts_at = MIN(starts_at, ?) WHERE id = ? AND ends_at > ?`,
+		t.Unix(), t.Unix(), id, t.Unix())
+	if err != nil {
+		return err
+	}
+	return expectOneRow(res)
+}

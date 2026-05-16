@@ -45,3 +45,22 @@ func TestMaintenanceWindows(t *testing.T) {
 		t.Errorf("second delete: %v", err)
 	}
 }
+
+func TestEndMaintenance(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	now := time.Date(2026, 5, 16, 12, 0, 0, 0, time.UTC)
+	w, err := s.CreateMaintenance(ctx, maintenance.Window{Title: "x", StartsAt: now.Add(-time.Hour), EndsAt: now.Add(time.Hour)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.EndMaintenance(ctx, w.ID, now); err != nil {
+		t.Fatal(err)
+	}
+	if list, _ := s.ListCurrentMaintenance(ctx, now); len(list) != 0 {
+		t.Errorf("window still current: %+v", list)
+	}
+	if err := s.EndMaintenance(ctx, w.ID, now); !errors.Is(err, ErrNotFound) {
+		t.Errorf("ending a finished window: %v", err)
+	}
+}
