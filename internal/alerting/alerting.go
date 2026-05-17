@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sorin-work/status-page/internal/incident"
+	"github.com/sorin-work/status-page/internal/maintenance"
 	"github.com/sorin-work/status-page/internal/monitor"
 	"github.com/sorin-work/status-page/internal/scheduler"
 	"github.com/sorin-work/status-page/internal/store"
@@ -20,6 +21,7 @@ type Store interface {
 	OpenIncidentForMonitor(ctx context.Context, monitorID int64) (incident.Incident, error)
 	CreateIncident(ctx context.Context, inc incident.Incident, message string) (incident.Incident, error)
 	AddIncidentUpdate(ctx context.Context, incidentID int64, status incident.Status, message string, at time.Time) (incident.Update, error)
+	ListCurrentMaintenance(ctx context.Context, t time.Time) ([]maintenance.Window, error)
 }
 
 // Manager opens an incident when a monitor goes down and resolves it when
@@ -88,17 +90,39 @@ func humanDuration(d time.Duration) string {
 	return fmt.Sprintf("%dh %dm", h, m)
 }
 
+// inMaintenance reports whether a maintenance window covers the monitor.
+func (m *Manager) inMaintenance(ctx context.Context, mon monitor.Monitor, at time.Time) (bool, error) {
+	windows, err := m.store.ListCurrentMaintenance(ctx, at)
+	if err != nil {
+		return false, err
+	}
+	for _, w := range windows {
+		if w.Active(at) && w.Covers(mon.ComponentID) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (m *Manager) monitorDown(ctx context.Context, t scheduler.Transition) error {
-	_, err := m.store.OpenIncidentForMonitor(ctx, t.Monitor.ID)
+	at := t.Result.CheckedAt
+	if at.IsZero() {
+		at = m.now()
+	}
+	planned, err := m.inMaintenance(ctx, t.Monitor, at)
+	if err != nil {
+		return err
+	}
+	if planned {
+		m.logger.Info("monitor down during maintenance, no incident opened", "monitor", t.Monitor.ID)
+		return nil
+	}
+	_, err = m.store.OpenIncidentForMonitor(ctx, t.Monitor.ID)
 	if err == nil {
 		return nil // already open, e.g. after a restart
 	}
 	if !errors.Is(err, store.ErrNotFound) {
 		return err
-	}
-	at := t.Result.CheckedAt
-	if at.IsZero() {
-		at = m.now()
 	}
 	inc := incident.Incident{
 		Title:       t.Monitor.Name + " is down",

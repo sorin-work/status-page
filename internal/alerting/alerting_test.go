@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sorin-work/status-page/internal/incident"
+	"github.com/sorin-work/status-page/internal/maintenance"
 	"github.com/sorin-work/status-page/internal/monitor"
 	"github.com/sorin-work/status-page/internal/scheduler"
 	"github.com/sorin-work/status-page/internal/store"
@@ -113,6 +114,37 @@ func TestHumanDuration(t *testing.T) {
 		if got := humanDuration(d); got != want {
 			t.Errorf("%v: got %q, want %q", d, got, want)
 		}
+	}
+}
+
+func TestNoIncidentDuringMaintenance(t *testing.T) {
+	mgr, st, m := setup(t)
+	ctx := context.Background()
+	now := time.Now()
+	if _, err := st.CreateMaintenance(ctx, maintenance.Window{Title: "upgrade", ComponentID: m.ComponentID, StartsAt: now.Add(-time.Minute), EndsAt: now.Add(time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusUp, monitor.StatusDown, now, "refused"))
+	if n, _ := st.CountIncidents(ctx); n != 0 {
+		t.Errorf("%d incidents during maintenance", n)
+	}
+}
+
+func TestMaintenanceOfOtherComponent(t *testing.T) {
+	mgr, st, m := setup(t)
+	ctx := context.Background()
+	other, _ := st.CreateComponent(ctx, store.Component{Name: "Other"})
+	now := time.Now()
+	if _, err := st.CreateMaintenance(ctx, maintenance.Window{Title: "upgrade", ComponentID: other.ID, StartsAt: now.Add(-time.Minute), EndsAt: now.Add(time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+	// A window that has not started yet does not count either.
+	if _, err := st.CreateMaintenance(ctx, maintenance.Window{Title: "later", StartsAt: now.Add(time.Hour), EndsAt: now.Add(2 * time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusUp, monitor.StatusDown, now, "refused"))
+	if n, _ := st.CountIncidents(ctx); n != 1 {
+		t.Errorf("%d incidents, want 1", n)
 	}
 }
 
