@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/sorin-work/status-page/internal/monitor"
 )
 
 func TestDailyRollups(t *testing.T) {
@@ -85,5 +87,32 @@ func TestComponentDailyStats(t *testing.T) {
 	}
 	if len(stats) != 2 || stats[0].MonitorID != a.ID || stats[0].Up != 2 || stats[1].Up != 0 {
 		t.Errorf("stats = %+v", stats)
+	}
+}
+
+func TestImportDailyStatAndBatch(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	m := createMonitor(t, s, "api")
+	if err := s.ImportDailyStat(ctx, DailyStat{MonitorID: m.ID, Day: "2026-03-01", Total: 1440, Up: 1430, LatencySumMS: 144000}); err != nil {
+		t.Fatal(err)
+	}
+	day := time.Date(2026, 3, 2, 10, 0, 0, 0, time.UTC)
+	batch := []monitor.Result{
+		{MonitorID: m.ID, CheckedAt: day, Up: true, Latency: 80 * time.Millisecond},
+		{MonitorID: m.ID, CheckedAt: day.Add(time.Minute), Up: false, Error: "timeout"},
+	}
+	if err := s.RecordChecks(ctx, batch); err != nil {
+		t.Fatal(err)
+	}
+	stats, err := s.DailyStats(ctx, m.ID, day.AddDate(0, 0, -1), day)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stats) != 2 || stats[0].Up != 1430 || stats[1].Total != 2 || stats[1].Up != 1 {
+		t.Errorf("stats = %+v", stats)
+	}
+	if n, _ := s.CountChecks(ctx, m.ID); n != 2 {
+		t.Errorf("checks = %d", n)
 	}
 }

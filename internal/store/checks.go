@@ -12,35 +12,52 @@ const MaxErrorLength = 500
 
 // RecordCheck stores the result of a check.
 func (s *Store) RecordCheck(ctx context.Context, r monitor.Result) error {
-	errMsg := r.Error
-	if len(errMsg) > MaxErrorLength {
-		errMsg = errMsg[:MaxErrorLength]
-	}
+	return s.RecordChecks(ctx, []monitor.Result{r})
+}
+
+// RecordChecks stores several results in one transaction and keeps the
+// daily rollups in step.
+func (s *Store) RecordChecks(ctx context.Context, results []monitor.Result) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err := tx.ExecContext(ctx, `INSERT INTO checks
+	insertCheck, err := tx.PrepareContext(ctx, `INSERT INTO checks
 		(monitor_id, checked_at, up, latency_ms, status_code, error)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		r.MonitorID, r.CheckedAt.Unix(), r.Up, r.Latency.Milliseconds(), r.StatusCode, errMsg); err != nil {
+		VALUES (?, ?, ?, ?, ?, ?)`)
+	if err != nil {
 		return err
 	}
-
-	up := 0
-	if r.Up {
-		up = 1
-	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO daily_stats (monitor_id, day, total, up, latency_sum_ms)
+	defer insertCheck.Close()
+	upsertDay, err := tx.PrepareContext(ctx, `INSERT INTO daily_stats (monitor_id, day, total, up, latency_sum_ms)
 		VALUES (?, ?, 1, ?, ?)
 		ON CONFLICT (monitor_id, day) DO UPDATE SET
 			total = total + 1,
 			up = up + excluded.up,
-			latency_sum_ms = latency_sum_ms + excluded.latency_sum_ms`,
-		r.MonitorID, Day(r.CheckedAt), up, r.Latency.Milliseconds()); err != nil {
+			latency_sum_ms = latency_sum_ms + excluded.latency_sum_ms`)
+	if err != nil {
 		return err
+	}
+	defer upsertDay.Close()
+
+	for _, r := range results {
+		errMsg := r.Error
+		if len(errMsg) > MaxErrorLength {
+			errMsg = errMsg[:MaxErrorLength]
+		}
+		if _, err := insertCheck.ExecContext(ctx, r.MonitorID, r.CheckedAt.Unix(), r.Up,
+			r.Latency.Milliseconds(), r.StatusCode, errMsg); err != nil {
+			return err
+		}
+		up := 0
+		if r.Up {
+			up = 1
+		}
+		if _, err := upsertDay.ExecContext(ctx, r.MonitorID, Day(r.CheckedAt), up, r.Latency.Milliseconds()); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }

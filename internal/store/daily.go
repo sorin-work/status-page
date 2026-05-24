@@ -72,3 +72,14 @@ func (s *Store) ComponentDailyStats(ctx context.Context, componentID int64, from
 	}
 	return out, rows.Err()
 }
+
+// ImportDailyStat writes a rollup directly. It is used to load history
+// whose raw checks are not kept, such as the demo data.
+func (s *Store) ImportDailyStat(ctx context.Context, d DailyStat) error {
+	_, err := s.db.ExecContext(ctx, `INSERT INTO daily_stats (monitor_id, day, total, up, latency_sum_ms)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT (monitor_id, day) DO UPDATE SET
+			total = excluded.total, up = excluded.up, latency_sum_ms = excluded.latency_sum_ms`,
+		d.MonitorID, d.Day, d.Total, d.Up, d.LatencySumMS)
+	return err
+}
