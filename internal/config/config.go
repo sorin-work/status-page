@@ -32,6 +32,10 @@ type Config struct {
 	CookieSecure bool
 	// Location is the time zone dates are shown in.
 	Location *time.Location
+	// SeedDemo fills an empty database with demo data.
+	SeedDemo bool
+	// DemoTargetURL is where the demo monitors point.
+	DemoTargetURL string
 }
 
 // Load builds a Config from the given lookup function, usually os.Getenv.
@@ -46,6 +50,7 @@ func Load(getenv func(string) string) (Config, error) {
 		SiteTitle:       "Status",
 		SessionTTL:      7 * 24 * time.Hour,
 		Location:        time.UTC,
+		DemoTargetURL:   "http://localhost:8081",
 	}
 
 	if v := strings.TrimSpace(getenv("LISTEN_ADDR")); v != "" {
@@ -100,6 +105,16 @@ func Load(getenv func(string) string) (Config, error) {
 			return Config{}, fmt.Errorf("TIMEZONE: unknown time zone %q", v)
 		}
 		cfg.Location = loc
+	}
+	if v := getenv("SEED_DEMO"); v != "" {
+		b, err := parseBool("SEED_DEMO", v)
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.SeedDemo = b
+	}
+	if v := strings.TrimSpace(getenv("DEMO_TARGET_URL")); v != "" {
+		cfg.DemoTargetURL = v
 	}
 	if v := strings.TrimSpace(getenv("CHECK_WORKERS")); v != "" {
 		n, err := strconv.Atoi(v)

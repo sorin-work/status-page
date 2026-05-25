@@ -18,6 +18,7 @@ import (
 	"github.com/sorin-work/status-page/internal/config"
 	"github.com/sorin-work/status-page/internal/monitor"
 	"github.com/sorin-work/status-page/internal/scheduler"
+	"github.com/sorin-work/status-page/internal/seed"
 	"github.com/sorin-work/status-page/internal/store"
 	"github.com/sorin-work/status-page/internal/web"
 )
@@ -51,6 +52,12 @@ func run() error {
 
 	if err := ensureAdmin(ctx, st, cfg, logger); err != nil {
 		return err
+	}
+
+	if cfg.SeedDemo {
+		if _, err := seed.Demo(ctx, st, seed.Options{TargetURL: cfg.DemoTargetURL, Logger: logger}); err != nil {
+			return fmt.Errorf("seed demo data: %w", err)
+		}
 	}
 
 	sched := scheduler.New(st, monitor.NewChecker(), cfg.CheckWorkers, logger.With("component", "scheduler"))
