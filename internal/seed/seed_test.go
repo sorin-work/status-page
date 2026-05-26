@@ -55,6 +55,39 @@ func TestDemoSeedsOnce(t *testing.T) {
 	}
 }
 
+func TestDemoHistory(t *testing.T) {
+	st := newStore(t)
+	ctx := context.Background()
+	o := opts()
+	if _, err := Demo(ctx, st, o); err != nil {
+		t.Fatal(err)
+	}
+	monitors, _ := st.ListMonitors(ctx)
+	byName := map[string]int64{}
+	for _, m := range monitors {
+		byName[m.Name] = m.ID
+	}
+	checkout := byName["Checkout"]
+	stats, err := st.DailyStats(ctx, checkout, o.Now.AddDate(0, 0, -89), o.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stats) != 90 {
+		t.Errorf("checkout has %d days of history, want 90", len(stats))
+	}
+	up, total, err := st.CountChecksSince(ctx, checkout, o.Now.Add(-7*24*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 7*24*6 || total-up != 4 {
+		t.Errorf("checkout raw checks: %d up of %d", up, total)
+	}
+	// The internal monitor has no profile and no history.
+	if n, _ := st.CountChecks(ctx, byName["Status endpoint (internal)"]); n != 0 {
+		t.Errorf("internal monitor has %d checks", n)
+	}
+}
+
 func TestDemoRejectsBadURL(t *testing.T) {
 	o := opts()
 	o.TargetURL = "not a url"

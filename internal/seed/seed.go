@@ -79,15 +79,21 @@ func Demo(ctx context.Context, st *store.Store, opts Options) (bool, error) {
 		{"Database", monitor.Monitor{Name: "Database port", Type: monitor.TypeTCP, Target: tcpAddr, Interval: 30 * time.Second, Timeout: 3 * time.Second}},
 		{"", monitor.Monitor{Name: "Status endpoint (internal)", Type: monitor.TypeHTTP, Target: target("/status/204"), Interval: 5 * time.Minute, Timeout: 5 * time.Second, ExpectedStatus: 204}},
 	}
+	var created []monitor.Monitor
 	for _, dm := range monitors {
 		m := dm.monitor
 		m.ComponentID = ids[dm.component]
 		if err := m.Validate(); err != nil {
 			return false, fmt.Errorf("demo monitor %s: %w", m.Name, err)
 		}
-		if _, err := st.CreateMonitor(ctx, m); err != nil {
+		saved, err := st.CreateMonitor(ctx, m)
+		if err != nil {
 			return false, err
 		}
+		created = append(created, saved)
+	}
+	if err := history(ctx, st, created, opts.Now.UTC()); err != nil {
+		return false, fmt.Errorf("demo history: %w", err)
 	}
 	opts.Logger.Info("seeded demo data", "components", len(components), "monitors", len(monitors), "target", opts.TargetURL)
 	return true, nil
