@@ -88,6 +88,34 @@ func TestDemoHistory(t *testing.T) {
 	}
 }
 
+func TestDemoIncidentsAndMaintenance(t *testing.T) {
+	st := newStore(t)
+	ctx := context.Background()
+	o := opts()
+	if _, err := Demo(ctx, st, o); err != nil {
+		t.Fatal(err)
+	}
+	list, err := st.ListIncidents(ctx, 50, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != len(demoIncidents) {
+		t.Fatalf("%d incidents", len(list))
+	}
+	for _, inc := range list {
+		if !inc.Resolved() || inc.ComponentID == 0 {
+			t.Errorf("incident %q: resolved=%v component=%d", inc.Title, inc.Resolved(), inc.ComponentID)
+		}
+	}
+	if open, _ := st.ListOpenIncidents(ctx); len(open) != 0 {
+		t.Errorf("%d open incidents", len(open))
+	}
+	current, _ := st.ListCurrentMaintenance(ctx, o.Now)
+	if len(current) != 1 || !current[0].Upcoming(o.Now) {
+		t.Errorf("upcoming maintenance = %+v", current)
+	}
+}
+
 func TestDemoRejectsBadURL(t *testing.T) {
 	o := opts()
 	o.TargetURL = "not a url"

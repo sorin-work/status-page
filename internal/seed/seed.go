@@ -95,6 +95,9 @@ func Demo(ctx context.Context, st *store.Store, opts Options) (bool, error) {
 	if err := history(ctx, st, created, opts.Now.UTC()); err != nil {
 		return false, fmt.Errorf("demo history: %w", err)
 	}
+	if err := incidentsAndMaintenance(ctx, st, ids, created, opts.Now.UTC()); err != nil {
+		return false, fmt.Errorf("demo incidents: %w", err)
+	}
 	opts.Logger.Info("seeded demo data", "components", len(components), "monitors", len(monitors), "target", opts.TargetURL)
 	return true, nil
 }
