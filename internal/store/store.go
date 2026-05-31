@@ -30,7 +30,11 @@ func Open(path string) (*Store, error) {
 			return nil, fmt.Errorf("create data directory: %w", err)
 		}
 	}
-	dsn := "file:" + path + "?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"
+	// In WAL mode synchronous=NORMAL is still safe against corruption and
+	// avoids an fsync on every commit, which matters with one insert per
+	// check.
+	dsn := "file:" + path + "?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)" +
+		"&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
