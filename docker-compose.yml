@@ -1,0 +1,28 @@
+name: status-page
+
+services:
+  app:
+    build: .
+    environment:
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-demo-password}
+      SITE_TITLE: ${SITE_TITLE:-Acme Status}
+      TIMEZONE: ${TIMEZONE:-UTC}
+      # Fills an empty database with demo monitors and 90 days of history.
+      SEED_DEMO: ${SEED_DEMO:-true}
+      DEMO_TARGET_URL: http://demo-target:8081
+    volumes:
+      - app-data:/data
+    depends_on:
+      - demo-target
+    ports:
+      - '${WEB_PORT:-4417}:4417'
+
+  # A fake shop for the demo monitors to check. Switch outages on with
+  #   docker compose exec demo-target wget -qO- --post-data= 'localhost:8081/control/outage?service=api&state=on'
+  demo-target:
+    build: .
+    command: ['demotarget']
+
+volumes:
+  app-data:
