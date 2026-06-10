@@ -76,6 +76,7 @@ func run() error {
 		SessionTTL:   cfg.SessionTTL,
 		CookieSecure: cfg.CookieSecure,
 		Location:     cfg.Location,
+		APIToken:     cfg.APIToken,
 	})
 	if err != nil {
 		return err

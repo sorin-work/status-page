@@ -69,6 +69,7 @@ func TestLoadInvalid(t *testing.T) {
 		"cookie secure":    {"COOKIE_SECURE": "maybe"},
 		"timezone":         {"TIMEZONE": "Mars/Olympus"},
 		"seed demo":        {"SEED_DEMO": "sure"},
+		"short api token":  {"API_TOKEN": "abc"},
 	}
 	for name, m := range cases {
 		t.Run(name, func(t *testing.T) {

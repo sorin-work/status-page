@@ -36,6 +36,9 @@ type Config struct {
 	SeedDemo bool
 	// DemoTargetURL is where the demo monitors point.
 	DemoTargetURL string
+	// APIToken enables the JSON API for clients that send it as a bearer
+	// token.
+	APIToken string
 }
 
 // Load builds a Config from the given lookup function, usually os.Getenv.
@@ -115,6 +118,10 @@ func Load(getenv func(string) string) (Config, error) {
 	}
 	if v := strings.TrimSpace(getenv("DEMO_TARGET_URL")); v != "" {
 		cfg.DemoTargetURL = v
+	}
+	cfg.APIToken = strings.TrimSpace(getenv("API_TOKEN"))
+	if cfg.APIToken != "" && len(cfg.APIToken) < 16 {
+		return Config{}, fmt.Errorf("API_TOKEN: must be at least 16 characters")
 	}
 	if v := strings.TrimSpace(getenv("CHECK_WORKERS")); v != "" {
 		n, err := strconv.Atoi(v)

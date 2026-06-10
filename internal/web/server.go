@@ -22,6 +22,8 @@ type Options struct {
 	CookieSecure bool
 	// Location is the time zone used to show dates. Defaults to UTC.
 	Location *time.Location
+	// APIToken protects the JSON API. Empty disables it.
+	APIToken string
 }
 
 // Server is the HTTP handler of the application.
@@ -36,6 +38,7 @@ type Server struct {
 	sessionTTL   time.Duration
 	cookieSecure bool
 	loc          *time.Location
+	apiToken     string
 }
 
 // New builds a Server and registers its routes.
@@ -65,6 +68,7 @@ func New(opts Options) (*Server, error) {
 		sessionTTL:   opts.SessionTTL,
 		cookieSecure: opts.CookieSecure,
 		loc:          opts.Location,
+		apiToken:     opts.APIToken,
 	}
 	tmpl, err := loadTemplates(s.funcs())
 	if err != nil {
@@ -84,6 +88,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /{$}", s.handleStatusPage)
 	s.mux.HandleFunc("GET /incidents/{id}", s.handlePublicIncident)
+
+	s.mux.Handle("GET /api/monitors", s.apiAuth(s.apiListMonitors))
+	s.mux.Handle("GET /api/monitors/{id}", s.apiAuth(s.apiGetMonitor))
 
 	s.mux.HandleFunc("GET /admin/login", s.handleLoginForm)
 	s.mux.HandleFunc("POST /admin/login", s.handleLogin)
