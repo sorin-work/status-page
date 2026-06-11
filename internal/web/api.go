@@ -7,8 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 )
+
+func itoa64(n int64) string {
+	return strconv.FormatInt(n, 10)
+}
 
 // maxBodySize limits JSON request bodies.
 const maxBodySize = 1 << 20
