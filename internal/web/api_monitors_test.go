@@ -109,3 +109,65 @@ func TestAPIListAndGetMonitors(t *testing.T) {
 		t.Errorf("missing: %d", rec.Code)
 	}
 }
+
+func TestAPICreateMonitor(t *testing.T) {
+	srv, st := newAPIServer(t)
+	comp, _ := st.CreateComponent(context.Background(), store.Component{Name: "API"})
+	rec := apiCall(t, srv, http.MethodPost, "/api/monitors", map[string]any{
+		"name": "Orders API", "target": "https://orders.example.com/health", "keyword": "ok", "component_id": comp.ID,
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
+	}
+	m := decode[apiMonitor](t, rec)
+	if m.Type != "http" || m.IntervalSeconds != 60 || m.TimeoutSeconds != 10 || m.Status != "unknown" || m.ComponentID == nil || *m.ComponentID != comp.ID {
+		t.Errorf("defaults not applied: %+v", m)
+	}
+	if rec.Header().Get("Location") != "/api/monitors/"+itoa(m.ID) {
+		t.Errorf("Location = %q", rec.Header().Get("Location"))
+	}
+}
+
+func TestAPICreateMonitorValidation(t *testing.T) {
+	srv, _ := newAPIServer(t)
+	rec := apiCall(t, srv, http.MethodPost, "/api/monitors", map[string]any{
+		"name": "", "type": "tcp", "target": "db:5432", "keyword": "x", "component_id": 77,
+	})
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("got %d", rec.Code)
+	}
+	body := decode[apiError](t, rec)
+	for _, f := range []string{"name", "keyword", "component_id"} {
+		if body.Fields[f] == "" {
+			t.Errorf("no error for %s: %+v", f, body)
+		}
+	}
+	if rec := apiCall(t, srv, http.MethodPost, "/api/monitors", map[string]any{"nme": "typo"}); rec.Code != http.StatusBadRequest {
+		t.Errorf("unknown field: %d", rec.Code)
+	}
+}
+
+func TestAPIUpdateAndDeleteMonitor(t *testing.T) {
+	srv, st := newAPIServer(t)
+	m := addMonitor(t, st, "old")
+	path := "/api/monitors/" + itoa(m.ID)
+
+	rec := apiCall(t, srv, http.MethodPut, path, map[string]any{
+		"name": "new", "type": "tcp", "target": "cache.internal:6379", "interval_seconds": 30, "timeout_seconds": 3,
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update: %d %s", rec.Code, rec.Body.String())
+	}
+	if got := decode[apiMonitor](t, rec); got.Name != "new" || got.Type != "tcp" || got.IntervalSeconds != 30 {
+		t.Errorf("updated = %+v", got)
+	}
+	if rec := apiCall(t, srv, http.MethodDelete, path, nil); rec.Code != http.StatusNoContent {
+		t.Fatalf("delete: %d", rec.Code)
+	}
+	if rec := apiCall(t, srv, http.MethodDelete, path, nil); rec.Code != http.StatusNotFound {
+		t.Errorf("second delete: %d", rec.Code)
+	}
+	if rec := apiCall(t, srv, http.MethodPut, path, map[string]any{"name": "x"}); rec.Code != http.StatusNotFound {
+		t.Errorf("update deleted: %d", rec.Code)
+	}
+}
