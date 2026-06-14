@@ -39,3 +39,33 @@ func TestAPIListChecks(t *testing.T) {
 		}
 	}
 }
+
+func TestAPIUptime(t *testing.T) {
+	srv, st := newAPIServer(t)
+	m := addMonitor(t, st, "api")
+	for i := range 4 {
+		r := monitor.Result{MonitorID: m.ID, CheckedAt: time.Now().Add(-time.Duration(i) * time.Hour), Up: i > 0}
+		if err := st.RecordCheck(context.Background(), r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rec := apiCall(t, srv, http.MethodGet, "/api/monitors/"+itoa(m.ID)+"/uptime", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d", rec.Code)
+	}
+	type uptimeBody struct {
+		Day     apiRatio `json:"24h"`
+		Quarter apiRatio `json:"90d"`
+	}
+	body := decode[uptimeBody](t, rec)
+	day := body.Day
+	if day.Total != 4 || day.Up != 3 || day.Percent == nil || *day.Percent != 75 {
+		t.Errorf("24h = %+v", day)
+	}
+
+	empty := addMonitor(t, st, "new")
+	body = decode[uptimeBody](t, apiCall(t, srv, http.MethodGet, "/api/monitors/"+itoa(empty.ID)+"/uptime", nil))
+	if body.Quarter.Percent != nil {
+		t.Errorf("monitor without checks has a percentage: %+v", body.Quarter)
+	}
+}

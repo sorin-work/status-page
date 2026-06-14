@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sorin-work/status-page/internal/monitor"
+	"github.com/sorin-work/status-page/internal/uptime"
 )
 
 type apiCheck struct {
@@ -63,4 +64,37 @@ func (s *Server) apiListChecks(w http.ResponseWriter, r *http.Request) {
 		out = append(out, toAPICheck(c))
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"checks": out, "total": total, "limit": limit, "offset": offset})
+}
+
+type apiRatio struct {
+	Percent *float64 `json:"percent"`
+	Up      int      `json:"up"`
+	Total   int      `json:"total"`
+}
+
+func toAPIRatio(r uptime.Ratio) apiRatio {
+	out := apiRatio{Up: r.Up, Total: r.Total}
+	if r.HasData() {
+		p := r.Percent()
+		out.Percent = &p
+	}
+	return out
+}
+
+func (s *Server) apiUptime(w http.ResponseWriter, r *http.Request) {
+	m, ok := s.apiLoadMonitor(w, r)
+	if !ok {
+		return
+	}
+	sum, err := uptime.Summarize(r.Context(), s.store, m.ID, s.now())
+	if err != nil {
+		s.apiServerError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"monitor_id": m.ID,
+		"24h":        toAPIRatio(sum.Day),
+		"7d":         toAPIRatio(sum.Week),
+		"90d":        toAPIRatio(sum.Quarter),
+	})
 }
