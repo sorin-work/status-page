@@ -97,6 +97,11 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/monitors/{id}/checks", s.apiAuth(s.apiListChecks))
 	s.mux.Handle("GET /api/monitors/{id}/uptime", s.apiAuth(s.apiUptime))
 
+	s.mux.Handle("GET /api/incidents", s.apiAuth(s.apiListIncidents))
+	s.mux.Handle("POST /api/incidents", s.apiAuth(s.apiCreateIncident))
+	s.mux.Handle("GET /api/incidents/{id}", s.apiAuth(s.apiGetIncident))
+	s.mux.HandleFunc("POST /api/incidents/{id}/updates", s.apiAddIncidentUpdate)
+
 	s.mux.HandleFunc("GET /admin/login", s.handleLoginForm)
 	s.mux.HandleFunc("POST /admin/login", s.handleLogin)
 	s.mux.Handle("POST /admin/logout", s.admin(s.handleLogout))
