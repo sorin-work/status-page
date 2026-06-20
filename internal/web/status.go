@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/sorin-work/status-page/internal/component"
@@ -31,21 +32,27 @@ type statusPage struct {
 const pastIncidentLimit = 10
 
 func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	components, err := s.store.ListComponents(ctx)
+	data, err := s.buildStatus(r.Context())
 	if err != nil {
 		s.serverError(w, r, err)
 		return
+	}
+	s.render(w, r, http.StatusOK, "status", page{Data: data})
+}
+
+// buildStatus gathers everything shown on the public status page.
+func (s *Server) buildStatus(ctx context.Context) (statusPage, error) {
+	components, err := s.store.ListComponents(ctx)
+	if err != nil {
+		return statusPage{}, err
 	}
 	active, err := s.store.ListOpenIncidents(ctx)
 	if err != nil {
-		s.serverError(w, r, err)
-		return
+		return statusPage{}, err
 	}
 	windows, err := s.store.ListCurrentMaintenance(ctx, s.now())
 	if err != nil {
-		s.serverError(w, r, err)
-		return
+		return statusPage{}, err
 	}
 	var (
 		data   statusPage
@@ -56,13 +63,11 @@ func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 	for _, c := range components {
 		monitors, err := s.store.ListComponentMonitors(ctx, c.ID)
 		if err != nil {
-			s.serverError(w, r, err)
-			return
+			return statusPage{}, err
 		}
 		stats, err := s.store.ComponentDailyStats(ctx, c.ID, from, today)
 		if err != nil {
-			s.serverError(w, r, err)
-			return
+			return statusPage{}, err
 		}
 		pc := publicComponent{Component: c, Level: component.LevelFor(monitors)}
 		// Planned work explains failing checks, so it wins over them.
@@ -91,15 +96,14 @@ func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 	}
 	past, err := s.store.ListRecentResolved(ctx, pastIncidentLimit)
 	if err != nil {
-		s.serverError(w, r, err)
-		return
+		return statusPage{}, err
 	}
 	data.Maintenance = windows
 	data.Active = active
 	data.Past = past
 	data.Overall = component.Overall(levels)
 	data.Headline = component.Headline(data.Overall)
-	s.render(w, r, http.StatusOK, "status", page{Data: data})
+	return data, nil
 }
 
 func (s *Server) handlePublicIncident(w http.ResponseWriter, r *http.Request) {
