@@ -2,8 +2,10 @@ package monitor
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -125,6 +127,13 @@ func validateTarget(t Type, target string) string {
 		}
 		if strings.ContainsAny(target, " /") {
 			return "must be host:port"
+		}
+		host, port, err := net.SplitHostPort(target)
+		if err != nil || host == "" {
+			return "must be host:port, e.g. db.internal:5432"
+		}
+		if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
+			return "must have a port between 1 and 65535"
 		}
 	}
 	return ""

@@ -76,6 +76,13 @@ func TestValidateTCPRejects(t *testing.T) {
 		{"scheme", "target", func(m *Monitor) { m.Target = "tcp://db:5432" }},
 		{"path", "target", func(m *Monitor) { m.Target = "db:5432/x" }},
 		{"expected status", "expected_status", func(m *Monitor) { m.ExpectedStatus = 200 }},
+		// Without a port every check failed with "missing port in address".
+		{"no port", "target", func(m *Monitor) { m.Target = "db.internal" }},
+		{"empty port", "target", func(m *Monitor) { m.Target = "db.internal:" }},
+		{"no host", "target", func(m *Monitor) { m.Target = ":5432" }},
+		{"port out of range", "target", func(m *Monitor) { m.Target = "db.internal:70000" }},
+		{"port zero", "target", func(m *Monitor) { m.Target = "db.internal:0" }},
+		{"named port", "target", func(m *Monitor) { m.Target = "db.internal:postgres" }},
 		{"keyword", "keyword", func(m *Monitor) { m.Keyword = "ok" }},
 	}
 	for _, tc := range cases {
@@ -84,6 +91,14 @@ func TestValidateTCPRejects(t *testing.T) {
 			tc.edit(&m)
 			assertFieldError(t, m.Validate(), tc.field)
 		})
+	}
+}
+
+func TestValidateTCPAcceptsIPv6(t *testing.T) {
+	m := validTCP()
+	m.Target = "[2001:db8::1]:5432"
+	if err := m.Validate(); err != nil {
+		t.Errorf("IPv6 target rejected: %v", err)
 	}
 }
 
