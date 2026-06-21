@@ -8,6 +8,8 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-demo-password}
       SITE_TITLE: ${SITE_TITLE:-Acme Status}
       TIMEZONE: ${TIMEZONE:-UTC}
+      # Bearer token for the JSON API, see docs/api.md.
+      API_TOKEN: ${API_TOKEN:-demo-api-token-change-me}
       # Fills an empty database with demo monitors and 90 days of history.
       SEED_DEMO: ${SEED_DEMO:-true}
       DEMO_TARGET_URL: http://demo-target:8081
