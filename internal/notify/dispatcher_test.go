@@ -104,3 +104,79 @@ func TestDeliverRecordsFailures(t *testing.T) {
 		t.Errorf("%d deliveries logged", len(log))
 	}
 }
+
+// flaky fails the first n requests with 503.
+type flaky struct {
+	mu    sync.Mutex
+	fails int
+	ids   []string
+}
+
+func (f *flaky) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.ids = append(f.ids, r.Header.Get(HeaderDelivery))
+	if f.fails > 0 {
+		f.fails--
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func TestRetriesUntilSuccess(t *testing.T) {
+	st := newStore(t)
+	ctx := context.Background()
+	rcv := &flaky{fails: 2}
+	srv := httptest.NewServer(rcv)
+	defer srv.Close()
+	hook, _ := st.CreateWebhook(ctx, store.Webhook{Name: "x", URL: srv.URL, Secret: "k", Enabled: true})
+
+	d := NewDispatcher(st, slog.New(slog.DiscardHandler))
+	d.Backoff = []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}
+	d.Start(1)
+	d.Publish(ctx, Event{Type: EventTest})
+	d.Close()
+
+	log, _ := st.ListDeliveries(ctx, hook.ID, 10)
+	if len(log) != 3 || !log[0].OK() || log[0].Attempt != 3 || log[2].Attempt != 1 {
+		t.Fatalf("deliveries = %+v", log)
+	}
+	if rcv.ids[0] != rcv.ids[2] {
+		t.Errorf("retries used different delivery ids: %v", rcv.ids)
+	}
+}
+
+func TestGivesUpAfterBackoff(t *testing.T) {
+	st := newStore(t)
+	ctx := context.Background()
+	srv := httptest.NewServer(&flaky{fails: 100})
+	defer srv.Close()
+	hook, _ := st.CreateWebhook(ctx, store.Webhook{Name: "x", URL: srv.URL, Secret: "k", Enabled: true})
+
+	d := NewDispatcher(st, slog.New(slog.DiscardHandler))
+	d.Backoff = []time.Duration{time.Millisecond}
+	d.Start(1)
+	d.Publish(ctx, Event{Type: EventTest})
+	d.Close()
+	if log, _ := st.ListDeliveries(ctx, hook.ID, 10); len(log) != 2 {
+		t.Errorf("%d attempts, want 2", len(log))
+	}
+}
+
+func TestNoRetryOnClientError(t *testing.T) {
+	st := newStore(t)
+	ctx := context.Background()
+	srv := httptest.NewServer(&receiver{status: http.StatusGone})
+	defer srv.Close()
+	hook, _ := st.CreateWebhook(ctx, store.Webhook{Name: "x", URL: srv.URL, Secret: "k", Enabled: true})
+
+	d := NewDispatcher(st, slog.New(slog.DiscardHandler))
+	d.Backoff = []time.Duration{time.Millisecond, time.Millisecond}
+	d.Start(1)
+	d.Publish(ctx, Event{Type: EventTest})
+	d.Close()
+	if log, _ := st.ListDeliveries(ctx, hook.ID, 10); len(log) != 1 {
+		t.Errorf("%d attempts, want 1", len(log))
+	}
+}
