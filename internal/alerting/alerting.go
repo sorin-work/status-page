@@ -12,6 +12,7 @@ import (
 	"github.com/sorin-work/status-page/internal/incident"
 	"github.com/sorin-work/status-page/internal/maintenance"
 	"github.com/sorin-work/status-page/internal/monitor"
+	"github.com/sorin-work/status-page/internal/notify"
 	"github.com/sorin-work/status-page/internal/scheduler"
 	"github.com/sorin-work/status-page/internal/store"
 )
@@ -24,12 +25,20 @@ type Store interface {
 	ListCurrentMaintenance(ctx context.Context, t time.Time) ([]maintenance.Window, error)
 }
 
+// Publisher sends events to webhooks.
+type Publisher interface {
+	Publish(ctx context.Context, ev notify.Event)
+}
+
 // Manager opens an incident when a monitor goes down and resolves it when
 // the monitor recovers.
 type Manager struct {
 	store  Store
 	logger *slog.Logger
 	now    func() time.Time
+
+	// Publisher, if set, receives monitor and incident events.
+	Publisher Publisher
 }
 
 // New returns a Manager.
@@ -42,6 +51,14 @@ func New(st Store, logger *slog.Logger) *Manager {
 
 // HandleTransition is meant to be used as the scheduler's OnTransition.
 func (m *Manager) HandleTransition(ctx context.Context, t scheduler.Transition) {
+	if t.From != monitor.StatusUnknown || t.To == monitor.StatusDown {
+		switch t.To {
+		case monitor.StatusDown:
+			m.publish(ctx, notify.EventMonitorDown, monitorInfo(t), nil)
+		case monitor.StatusUp:
+			m.publish(ctx, notify.EventMonitorUp, monitorInfo(t), nil)
+		}
+	}
 	if t.To == monitor.StatusDown && t.From != monitor.StatusDown {
 		if err := m.monitorDown(ctx, t); err != nil {
 			m.logger.Error("open incident", "monitor", t.Monitor.ID, "err", err)
@@ -71,7 +88,23 @@ func (m *Manager) monitorUp(ctx context.Context, t scheduler.Transition) error {
 		return err
 	}
 	m.logger.Info("incident resolved", "incident", inc.ID, "monitor", t.Monitor.ID)
+	m.publish(ctx, notify.EventIncidentUpdated, nil, &notify.IncidentInfo{
+		ID: inc.ID, Title: inc.Title, Status: string(incident.StatusResolved), Impact: string(inc.Impact), Message: msg,
+	})
 	return nil
+}
+
+func (m *Manager) publish(ctx context.Context, typ string, mon *notify.MonitorInfo, inc *notify.IncidentInfo) {
+	if m.Publisher == nil {
+		return
+	}
+	m.Publisher.Publish(ctx, notify.Event{Type: typ, Timestamp: m.now().UTC(), Monitor: mon, Incident: inc})
+}
+
+func monitorInfo(t scheduler.Transition) *notify.MonitorInfo {
+	return &notify.MonitorInfo{
+		ID: t.Monitor.ID, Name: t.Monitor.Name, Target: t.Monitor.Target, Status: string(t.To), Error: t.Result.Error,
+	}
 }
 
 // humanDuration rounds to minutes, e.g. "1h 5m" or "less than a minute".
@@ -142,5 +175,8 @@ func (m *Manager) monitorDown(ctx context.Context, t scheduler.Transition) error
 		return err
 	}
 	m.logger.Info("incident opened", "incident", created.ID, "monitor", t.Monitor.ID)
+	m.publish(ctx, notify.EventIncidentCreated, nil, &notify.IncidentInfo{
+		ID: created.ID, Title: created.Title, Status: string(created.Status), Impact: string(created.Impact), Message: msg,
+	})
 	return nil
 }

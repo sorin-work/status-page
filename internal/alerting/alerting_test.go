@@ -10,6 +10,7 @@ import (
 	"github.com/sorin-work/status-page/internal/incident"
 	"github.com/sorin-work/status-page/internal/maintenance"
 	"github.com/sorin-work/status-page/internal/monitor"
+	"github.com/sorin-work/status-page/internal/notify"
 	"github.com/sorin-work/status-page/internal/scheduler"
 	"github.com/sorin-work/status-page/internal/store"
 )
@@ -145,6 +146,43 @@ func TestMaintenanceOfOtherComponent(t *testing.T) {
 	mgr.HandleTransition(ctx, transition(m, monitor.StatusUp, monitor.StatusDown, now, "refused"))
 	if n, _ := st.CountIncidents(ctx); n != 1 {
 		t.Errorf("%d incidents, want 1", n)
+	}
+}
+
+type recorder struct{ events []notify.Event }
+
+func (r *recorder) Publish(_ context.Context, ev notify.Event) { r.events = append(r.events, ev) }
+
+func (r *recorder) types() []string {
+	var out []string
+	for _, ev := range r.events {
+		out = append(out, ev.Type)
+	}
+	return out
+}
+
+func TestPublishesEvents(t *testing.T) {
+	mgr, _, m := setup(t)
+	rec := &recorder{}
+	mgr.Publisher = rec
+	ctx := context.Background()
+	now := time.Now()
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusUnknown, monitor.StatusUp, now, ""))
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusUp, monitor.StatusDown, now, "refused"))
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusDown, monitor.StatusUp, now.Add(time.Minute), ""))
+
+	want := []string{"monitor.down", "incident.created", "monitor.up", "incident.updated"}
+	got := rec.types()
+	if len(got) != len(want) {
+		t.Fatalf("events = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("events = %v, want %v", got, want)
+		}
+	}
+	if rec.events[0].Monitor.Error != "refused" || rec.events[3].Incident.Status != "resolved" {
+		t.Errorf("payloads: %+v %+v", rec.events[0].Monitor, rec.events[3].Incident)
 	}
 }
 

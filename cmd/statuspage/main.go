@@ -17,6 +17,7 @@ import (
 	"github.com/sorin-work/status-page/internal/auth"
 	"github.com/sorin-work/status-page/internal/config"
 	"github.com/sorin-work/status-page/internal/monitor"
+	"github.com/sorin-work/status-page/internal/notify"
 	"github.com/sorin-work/status-page/internal/scheduler"
 	"github.com/sorin-work/status-page/internal/seed"
 	"github.com/sorin-work/status-page/internal/store"
@@ -62,7 +63,13 @@ func run() error {
 
 	sched := scheduler.New(st, monitor.NewChecker(), cfg.CheckWorkers, logger.With("component", "scheduler"))
 	sched.Jitter = 10 * time.Second
-	sched.OnTransition = alerting.New(st, logger.With("component", "alerting")).HandleTransition
+	dispatcher := notify.NewDispatcher(st, logger.With("component", "webhooks"))
+	dispatcher.Start(2)
+	defer dispatcher.Close()
+
+	alerts := alerting.New(st, logger.With("component", "alerting"))
+	alerts.Publisher = dispatcher
+	sched.OnTransition = alerts.HandleTransition
 	schedDone := make(chan struct{})
 	go func() {
 		sched.Run(ctx)
