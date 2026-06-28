@@ -1,0 +1,52 @@
+{{define "content"}}
+<div class="page-head">
+  <h1>Webhooks</h1>
+</div>
+<p class="muted">Webhooks receive a signed JSON POST when a monitor goes down or recovers and when incidents are opened or updated. See <code>docs/webhooks.md</code> for the payload and how to verify the signature.</p>
+{{with .Data.Error}}<div class="alert">{{.}}</div>{{end}}
+
+{{if .Data.Rows}}
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Name</th><th>URL</th><th>Secret</th><th>Last delivery</th><th></th></tr></thead>
+    <tbody>
+      {{range .Data.Rows}}
+      <tr>
+        <td><strong>{{.Webhook.Name}}</strong>{{if not .Webhook.Enabled}} <span class="badge paused">disabled</span>{{end}}</td>
+        <td class="small">{{.Webhook.URL}}</td>
+        <td><details><summary class="small">show</summary><code class="small">{{.Webhook.Secret}}</code></details></td>
+        <td class="small">{{with .Last}}{{if .OK}}<span class="badge up">{{.StatusCode}}</span>{{else}}<span class="badge down" title="{{.Error}}">failed</span>{{end}} {{.Event}} · {{ago .CreatedAt}}{{else}}<span class="muted">none yet</span>{{end}}</td>
+        <td class="actions">
+          <form method="post" action="/admin/webhooks/{{.Webhook.ID}}/toggle" class="inline">
+            <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+            <button type="submit" class="link">{{if .Webhook.Enabled}}Disable{{else}}Enable{{end}}</button>
+          </form>
+          <form method="post" action="/admin/webhooks/{{.Webhook.ID}}/delete" class="inline" onsubmit="return confirm('Delete this webhook?')">
+            <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+            <button type="submit" class="link">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="card empty">No webhooks yet.</div>
+{{end}}
+
+<form method="post" action="/admin/webhooks" class="card stacked">
+  <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+  <h2>Add a webhook</h2>
+  <div class="field">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" value="{{.Data.Name}}" placeholder="Team chat" required>
+  </div>
+  <div class="field">
+    <label for="url">URL</label>
+    <input type="url" id="url" name="url" value="{{.Data.URL}}" placeholder="https://hooks.example.com/status" required>
+    <div class="hint">A random signing secret is generated for each webhook.</div>
+  </div>
+  <button type="submit">Add webhook</button>
+</form>
+{{end}}
