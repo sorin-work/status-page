@@ -84,6 +84,7 @@ func run() error {
 		CookieSecure: cfg.CookieSecure,
 		Location:     cfg.Location,
 		APIToken:     cfg.APIToken,
+		Notifier:     dispatcher,
 	})
 	if err != nil {
 		return err

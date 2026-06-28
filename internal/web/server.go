@@ -24,6 +24,8 @@ type Options struct {
 	Location *time.Location
 	// APIToken protects the JSON API. Empty disables it.
 	APIToken string
+	// Notifier sends webhook events. Optional.
+	Notifier Notifier
 }
 
 // Server is the HTTP handler of the application.
@@ -39,6 +41,7 @@ type Server struct {
 	cookieSecure bool
 	loc          *time.Location
 	apiToken     string
+	notifier     Notifier
 }
 
 // New builds a Server and registers its routes.
@@ -69,6 +72,7 @@ func New(opts Options) (*Server, error) {
 		cookieSecure: opts.CookieSecure,
 		loc:          opts.Location,
 		apiToken:     opts.APIToken,
+		notifier:     opts.Notifier,
 	}
 	tmpl, err := loadTemplates(s.funcs())
 	if err != nil {
@@ -130,6 +134,7 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /admin/webhooks", s.admin(s.handleCreateWebhook))
 	s.mux.Handle("POST /admin/webhooks/{id}/toggle", s.admin(s.handleToggleWebhook))
 	s.mux.Handle("POST /admin/webhooks/{id}/delete", s.admin(s.handleDeleteWebhook))
+	s.mux.Handle("POST /admin/webhooks/{id}/test", s.admin(s.handleTestWebhook))
 
 	s.mux.Handle("GET /admin/incidents", s.admin(s.handleIncidents))
 	s.mux.Handle("GET /admin/incidents/new", s.admin(s.handleNewIncident))

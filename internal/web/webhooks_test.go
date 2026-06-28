@@ -6,6 +6,9 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/sorin-work/status-page/internal/notify"
+	"github.com/sorin-work/status-page/internal/store"
 )
 
 func TestWebhookAdmin(t *testing.T) {
@@ -36,6 +39,31 @@ func TestWebhookAdmin(t *testing.T) {
 	}
 	if hooks, _ := st.ListWebhooks(ctx, false); len(hooks) != 0 {
 		t.Error("webhook not deleted")
+	}
+}
+
+type fakeNotifier struct {
+	delivered []notify.Event
+}
+
+func (f *fakeNotifier) Publish(context.Context, notify.Event) {}
+
+func (f *fakeNotifier) Deliver(_ context.Context, hook store.Webhook, ev notify.Event) store.Delivery {
+	f.delivered = append(f.delivered, ev)
+	return store.Delivery{WebhookID: hook.ID, Event: ev.Type, StatusCode: http.StatusOK}
+}
+
+func TestWebhookTestDelivery(t *testing.T) {
+	srv, st := newTestServer(t)
+	fn := &fakeNotifier{}
+	srv.notifier = fn
+	createAdmin(t, st)
+	c, csrf := login(t, srv)
+	hook, _ := st.CreateWebhook(context.Background(), store.Webhook{Name: "x", URL: "https://x.test", Secret: "k", Enabled: true})
+
+	rec := postForm(t, srv, "/admin/webhooks/"+itoa(hook.ID)+"/test", url.Values{"csrf": {csrf}}, c)
+	if rec.Code != http.StatusSeeOther || len(fn.delivered) != 1 || fn.delivered[0].Type != notify.EventTest {
+		t.Errorf("test delivery: %d %+v", rec.Code, fn.delivered)
 	}
 }
 

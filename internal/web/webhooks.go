@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
@@ -8,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sorin-work/status-page/internal/auth"
+	"github.com/sorin-work/status-page/internal/notify"
 	"github.com/sorin-work/status-page/internal/store"
 )
 
@@ -120,5 +122,28 @@ func (s *Server) handleDeleteWebhook(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	http.Redirect(w, r, "/admin/webhooks", http.StatusSeeOther)
+}
+
+// Notifier delivers webhook events.
+type Notifier interface {
+	Publish(ctx context.Context, ev notify.Event)
+	Deliver(ctx context.Context, hook store.Webhook, ev notify.Event) store.Delivery
+}
+
+func (s *Server) handleTestWebhook(w http.ResponseWriter, r *http.Request) {
+	hook, ok := s.loadWebhook(w, r)
+	if !ok {
+		return
+	}
+	if s.notifier == nil {
+		http.Error(w, "Webhooks are not configured.", http.StatusServiceUnavailable)
+		return
+	}
+	s.notifier.Deliver(r.Context(), hook, notify.Event{
+		Type:      notify.EventTest,
+		Timestamp: s.now().UTC(),
+		Incident:  &notify.IncidentInfo{Title: "Test delivery from " + s.site, Status: "resolved", Impact: "none", Message: "If you can read this, the webhook works."},
+	})
 	http.Redirect(w, r, "/admin/webhooks", http.StatusSeeOther)
 }
