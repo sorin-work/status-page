@@ -44,9 +44,12 @@ func TestWebhookAdmin(t *testing.T) {
 
 type fakeNotifier struct {
 	delivered []notify.Event
+	published []notify.Event
 }
 
-func (f *fakeNotifier) Publish(context.Context, notify.Event) {}
+func (f *fakeNotifier) Publish(_ context.Context, ev notify.Event) {
+	f.published = append(f.published, ev)
+}
 
 func (f *fakeNotifier) Deliver(_ context.Context, hook store.Webhook, ev notify.Event) store.Delivery {
 	f.delivered = append(f.delivered, ev)
@@ -64,6 +67,26 @@ func TestWebhookTestDelivery(t *testing.T) {
 	rec := postForm(t, srv, "/admin/webhooks/"+itoa(hook.ID)+"/test", url.Values{"csrf": {csrf}}, c)
 	if rec.Code != http.StatusSeeOther || len(fn.delivered) != 1 || fn.delivered[0].Type != notify.EventTest {
 		t.Errorf("test delivery: %d %+v", rec.Code, fn.delivered)
+	}
+}
+
+func TestManualIncidentsPublishEvents(t *testing.T) {
+	srv, st := newTestServer(t)
+	fn := &fakeNotifier{}
+	srv.notifier = fn
+	createAdmin(t, st)
+	c, csrf := login(t, srv)
+
+	rec := postForm(t, srv, "/admin/incidents", url.Values{
+		"csrf": {csrf}, "title": {"Login issues"}, "status": {"investigating"}, "impact": {"minor"}, "message": {"Looking."},
+	}, c)
+	postForm(t, srv, rec.Header().Get("Location")+"/updates", url.Values{"csrf": {csrf}, "status": {"resolved"}, "message": {"Fixed."}}, c)
+
+	if len(fn.published) != 2 || fn.published[0].Type != notify.EventIncidentCreated || fn.published[1].Incident.Status != "resolved" {
+		t.Fatalf("published = %+v", fn.published)
+	}
+	if fn.published[1].Incident.Message != "Fixed." || !strings.HasPrefix(fn.published[1].Incident.URL, "/incidents/") {
+		t.Errorf("payload = %+v", fn.published[1].Incident)
 	}
 }
 

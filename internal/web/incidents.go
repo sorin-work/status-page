@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sorin-work/status-page/internal/incident"
+	"github.com/sorin-work/status-page/internal/notify"
 	"github.com/sorin-work/status-page/internal/store"
 )
 
@@ -99,6 +100,7 @@ func (s *Server) handleCreateIncident(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	s.publishIncident(r.Context(), notify.EventIncidentCreated, inc, inc.Status, f.Message)
 	http.Redirect(w, r, "/admin/incidents/"+strconv.FormatInt(inc.ID, 10), http.StatusSeeOther)
 }
 
@@ -160,5 +162,6 @@ func (s *Server) handleAddIncidentUpdate(w http.ResponseWriter, r *http.Request)
 		s.serverError(w, r, err)
 		return
 	}
+	s.publishIncident(r.Context(), notify.EventIncidentUpdated, inc, status, message)
 	http.Redirect(w, r, "/admin/incidents/"+strconv.FormatInt(inc.ID, 10), http.StatusSeeOther)
 }

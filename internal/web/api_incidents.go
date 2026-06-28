@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sorin-work/status-page/internal/incident"
+	"github.com/sorin-work/status-page/internal/notify"
 	"github.com/sorin-work/status-page/internal/store"
 )
 
@@ -148,6 +149,7 @@ func (s *Server) apiCreateIncident(w http.ResponseWriter, r *http.Request) {
 		s.apiServerError(w, r, err)
 		return
 	}
+	s.publishIncident(r.Context(), notify.EventIncidentCreated, created, created.Status, in.Message)
 	w.Header().Set("Location", "/api/incidents/"+itoa64(created.ID))
 	writeJSON(w, http.StatusCreated, toAPIIncident(created))
 }
@@ -179,5 +181,6 @@ func (s *Server) apiAddIncidentUpdate(w http.ResponseWriter, r *http.Request) {
 		s.apiServerError(w, r, err)
 		return
 	}
+	s.publishIncident(r.Context(), notify.EventIncidentUpdated, inc, u.Status, u.Message)
 	writeJSON(w, http.StatusCreated, apiUpdate{ID: u.ID, Status: string(u.Status), Message: u.Message, CreatedAt: u.CreatedAt})
 }

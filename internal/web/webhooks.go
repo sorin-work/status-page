@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sorin-work/status-page/internal/auth"
+	"github.com/sorin-work/status-page/internal/incident"
 	"github.com/sorin-work/status-page/internal/notify"
 	"github.com/sorin-work/status-page/internal/store"
 )
@@ -146,4 +147,19 @@ func (s *Server) handleTestWebhook(w http.ResponseWriter, r *http.Request) {
 		Incident:  &notify.IncidentInfo{Title: "Test delivery from " + s.site, Status: "resolved", Impact: "none", Message: "If you can read this, the webhook works."},
 	})
 	http.Redirect(w, r, "/admin/webhooks", http.StatusSeeOther)
+}
+
+// publishIncident sends an incident event if webhooks are configured.
+func (s *Server) publishIncident(ctx context.Context, typ string, inc incident.Incident, status incident.Status, message string) {
+	if s.notifier == nil {
+		return
+	}
+	s.notifier.Publish(ctx, notify.Event{
+		Type:      typ,
+		Timestamp: s.now().UTC(),
+		Incident: &notify.IncidentInfo{
+			ID: inc.ID, Title: inc.Title, Status: string(status), Impact: string(inc.Impact),
+			Message: strings.TrimSpace(message), URL: "/incidents/" + itoa64(inc.ID),
+		},
+	})
 }
