@@ -132,6 +132,7 @@ func (s *Server) routes() {
 
 	s.mux.Handle("GET /admin/webhooks", s.admin(s.handleWebhooks))
 	s.mux.Handle("POST /admin/webhooks", s.admin(s.handleCreateWebhook))
+	s.mux.Handle("GET /admin/webhooks/{id}", s.admin(s.handleWebhookDeliveries))
 	s.mux.Handle("POST /admin/webhooks/{id}/toggle", s.admin(s.handleToggleWebhook))
 	s.mux.Handle("POST /admin/webhooks/{id}/delete", s.admin(s.handleDeleteWebhook))
 	s.mux.Handle("POST /admin/webhooks/{id}/test", s.admin(s.handleTestWebhook))

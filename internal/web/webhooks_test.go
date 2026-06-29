@@ -70,6 +70,30 @@ func TestWebhookTestDelivery(t *testing.T) {
 	}
 }
 
+func TestWebhookDeliveriesPage(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	c, _ := login(t, srv)
+	ctx := context.Background()
+	hook, _ := st.CreateWebhook(ctx, store.Webhook{Name: "Chat", URL: "https://x.test", Secret: "k", Enabled: true})
+	path := "/admin/webhooks/" + itoa(hook.ID)
+	if body := getWith(t, srv, path, c).Body.String(); !strings.Contains(body, "Nothing has been sent") {
+		t.Error("missing empty state")
+	}
+	if err := st.RecordDelivery(ctx, store.Delivery{WebhookID: hook.ID, Event: "monitor.down", Attempt: 2, Error: "connection refused"}); err != nil {
+		t.Fatal(err)
+	}
+	body := getWith(t, srv, path, c).Body.String()
+	for _, want := range []string{"monitor.down", "connection refused"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	if rec := getWith(t, srv, "/admin/webhooks/999", c); rec.Code != http.StatusNotFound {
+		t.Errorf("missing webhook: %d", rec.Code)
+	}
+}
+
 func TestManualIncidentsPublishEvents(t *testing.T) {
 	srv, st := newTestServer(t)
 	fn := &fakeNotifier{}

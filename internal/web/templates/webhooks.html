@@ -12,7 +12,7 @@
     <tbody>
       {{range .Data.Rows}}
       <tr>
-        <td><strong>{{.Webhook.Name}}</strong>{{if not .Webhook.Enabled}} <span class="badge paused">disabled</span>{{end}}</td>
+        <td><a href="/admin/webhooks/{{.Webhook.ID}}"><strong>{{.Webhook.Name}}</strong></a>{{if not .Webhook.Enabled}} <span class="badge paused">disabled</span>{{end}}</td>
         <td class="small">{{.Webhook.URL}}</td>
         <td><details><summary class="small">show</summary><code class="small">{{.Webhook.Secret}}</code></details></td>
         <td class="small">{{with .Last}}{{if .OK}}<span class="badge up">{{.StatusCode}}</span>{{else}}<span class="badge down" title="{{.Error}}">failed</span>{{end}} {{.Event}} · {{ago .CreatedAt}}{{else}}<span class="muted">none yet</span>{{end}}</td>

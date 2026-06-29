@@ -163,3 +163,19 @@ func (s *Server) publishIncident(ctx context.Context, typ string, inc incident.I
 		},
 	})
 }
+
+func (s *Server) handleWebhookDeliveries(w http.ResponseWriter, r *http.Request) {
+	hook, ok := s.loadWebhook(w, r)
+	if !ok {
+		return
+	}
+	deliveries, err := s.store.ListDeliveries(r.Context(), hook.ID, 50)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.render(w, r, http.StatusOK, "webhook_deliveries", page{Title: hook.Name, Nav: "webhooks", Data: struct {
+		Webhook    store.Webhook
+		Deliveries []store.Delivery
+	}{hook, deliveries}})
+}

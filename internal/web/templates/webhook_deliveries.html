@@ -1,0 +1,37 @@
+{{define "content"}}
+{{$h := .Data.Webhook}}
+<p><a href="/admin/webhooks">&larr; Webhooks</a></p>
+<div class="page-head">
+  <div>
+    <h1>{{$h.Name}}</h1>
+    <div class="muted small">{{$h.URL}}{{if not $h.Enabled}} · disabled{{end}}</div>
+  </div>
+  <form method="post" action="/admin/webhooks/{{$h.ID}}/test" class="inline">
+    <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
+    <button type="submit" class="secondary">Send test</button>
+  </form>
+</div>
+
+<h2>Recent deliveries</h2>
+{{if .Data.Deliveries}}
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Time</th><th>Event</th><th class="num">Attempt</th><th>Result</th><th class="num">Duration</th><th>Error</th></tr></thead>
+    <tbody>
+      {{range .Data.Deliveries}}
+      <tr>
+        <td>{{datetime .CreatedAt}}</td>
+        <td><code class="small">{{.Event}}</code></td>
+        <td class="num">{{.Attempt}}</td>
+        <td>{{if .OK}}<span class="badge up">{{.StatusCode}}</span>{{else if .StatusCode}}<span class="badge down">{{.StatusCode}}</span>{{else}}<span class="badge down">error</span>{{end}}</td>
+        <td class="num">{{duration .Duration}}</td>
+        <td class="small">{{.Error}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="card empty">Nothing has been sent to this webhook yet.</div>
+{{end}}
+{{end}}
