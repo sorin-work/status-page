@@ -19,8 +19,11 @@ var services = []string{"storefront", "api", "checkout", "search"}
 type target struct {
 	logger *slog.Logger
 
-	mu   sync.Mutex
-	down map[string]bool
+	mu       sync.Mutex
+	down     map[string]bool
+	received []received
+
+	webhookSecret string
 
 	// failRate is the share of /checkout requests that fail.
 	failRate float64
@@ -40,6 +43,8 @@ func (t *target) routes() http.Handler {
 	mux.Handle("GET /search", t.service("search", t.search))
 	mux.HandleFunc("GET /control", t.controlState)
 	mux.HandleFunc("POST /control/outage", t.controlOutage)
+	mux.HandleFunc("POST /webhooks", t.receiveWebhook)
+	mux.HandleFunc("GET /webhooks", t.listWebhooks)
 	mux.HandleFunc("GET /status/{code}", t.status)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("ok\n"))

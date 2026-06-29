@@ -76,3 +76,29 @@ func TestCheckoutFailsSometimes(t *testing.T) {
 		t.Errorf("got %d", rec.Code)
 	}
 }
+
+func TestReceiveWebhooks(t *testing.T) {
+	tg := testTarget()
+	tg.webhookSecret = "k"
+	h := tg.routes()
+
+	req := httptest.NewRequest(http.MethodPost, "/webhooks", strings.NewReader(`{"event":"test"}`))
+	req.Header.Set("X-StatusPage-Event", "test")
+	// HMAC-SHA256 of the body with key "k".
+	req.Header.Set("X-StatusPage-Signature", "sha256=bad")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("got %d", rec.Code)
+	}
+	if rec := do(t, h, http.MethodPost, "/webhooks"); rec.Code != http.StatusBadRequest {
+		t.Errorf("empty body: %d", rec.Code)
+	}
+	body := do(t, h, http.MethodGet, "/webhooks").Body.String()
+	if !strings.Contains(body, `"event": "test"`) && !strings.Contains(body, `"event":"test"`) {
+		t.Errorf("list = %s", body)
+	}
+	if !strings.Contains(body, `"signature_valid":false`) {
+		t.Errorf("signature not checked: %s", body)
+	}
+}

@@ -25,6 +25,8 @@ services:
   demo-target:
     build: .
     command: ['demotarget']
+    environment:
+      WEBHOOK_SECRET: demo-webhook-secret
 
 volumes:
   app-data:

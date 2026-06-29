@@ -22,6 +22,10 @@ type Options struct {
 	Logger    *slog.Logger
 }
 
+// DemoWebhookSecret signs deliveries to the demo receiver. It is only used
+// for the demo data and matches WEBHOOK_SECRET in docker-compose.yml.
+const DemoWebhookSecret = "demo-webhook-secret"
+
 type demoMonitor struct {
 	component string
 	monitor   monitor.Monitor
@@ -97,6 +101,12 @@ func Demo(ctx context.Context, st *store.Store, opts Options) (bool, error) {
 	}
 	if err := incidentsAndMaintenance(ctx, st, ids, created, opts.Now.UTC()); err != nil {
 		return false, fmt.Errorf("demo incidents: %w", err)
+	}
+	// The demo target logs what it receives at GET /webhooks.
+	if _, err := st.CreateWebhook(ctx, store.Webhook{
+		Name: "Demo receiver", URL: target("/webhooks"), Secret: DemoWebhookSecret, Enabled: true,
+	}); err != nil {
+		return false, err
 	}
 	opts.Logger.Info("seeded demo data", "components", len(components), "monitors", len(monitors), "target", opts.TargetURL)
 	return true, nil

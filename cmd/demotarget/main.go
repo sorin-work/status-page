@@ -17,9 +17,11 @@ func main() {
 		addr = ":8081"
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	t := newTarget(logger)
+	t.webhookSecret = os.Getenv("WEBHOOK_SECRET")
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           newTarget(logger).routes(),
+		Handler:           t.routes(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	logger.Info("demo target listening", "addr", addr)

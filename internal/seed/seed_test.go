@@ -39,6 +39,9 @@ func TestDemoSeedsOnce(t *testing.T) {
 	if len(monitors) != 6 || len(components) != 5 {
 		t.Fatalf("%d monitors, %d components", len(monitors), len(components))
 	}
+	if hooks, _ := st.ListWebhooks(ctx, true); len(hooks) != 1 || hooks[0].URL != "http://demo-target:8081/webhooks" {
+		t.Errorf("demo webhook = %+v", hooks)
+	}
 	var tcp string
 	for _, m := range monitors {
 		if m.Type == "tcp" {
