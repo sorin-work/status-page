@@ -158,6 +158,14 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
+	// Clearing the cookie is not enough: a copied cookie would keep
+	// working until the session expires.
+	if sess := currentSession(r); sess != nil {
+		if err := s.store.DeleteSession(r.Context(), sess.TokenHash); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
 		Value:    "",

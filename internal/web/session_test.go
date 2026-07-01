@@ -164,3 +164,17 @@ func TestLogoutNeedsCSRF(t *testing.T) {
 		t.Errorf("session cookie not cleared: %+v", cleared)
 	}
 }
+
+func TestLogoutEndsSessionOnServer(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	c, csrf := login(t, srv)
+	if rec := postForm(t, srv, "/admin/logout", url.Values{"csrf": {csrf}}, c); rec.Code != http.StatusSeeOther {
+		t.Fatalf("logout: %d", rec.Code)
+	}
+	// Replaying the old cookie must not get back in.
+	rec := getWith(t, srv, "/admin", c)
+	if rec.Code != http.StatusSeeOther || !strings.HasPrefix(rec.Header().Get("Location"), "/admin/login") {
+		t.Errorf("old session cookie still works after logout: %d", rec.Code)
+	}
+}
