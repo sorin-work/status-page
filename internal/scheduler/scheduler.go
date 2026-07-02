@@ -181,7 +181,9 @@ func (s *Scheduler) apply(m monitor.Monitor, res monitor.Result) (from, to monit
 		return from, st.status
 	}
 	st.failures++
-	if st.failures >= m.Retries {
+	// The first failure is not a retry: with Retries = 2 the monitor goes
+	// down on the third consecutive failure.
+	if st.failures > m.Retries {
 		st.status = monitor.StatusDown
 	}
 	return from, st.status

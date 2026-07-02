@@ -197,6 +197,34 @@ func TestJitterDelaysFirstChecks(t *testing.T) {
 	}
 }
 
+func TestRetriesBeforeDown(t *testing.T) {
+	store := &fakeStore{monitors: []monitor.Monitor{mon(1, time.Minute, 2)}}
+	checker := &scriptedChecker{script: map[int64][]bool{1: {true, false, false, false}}}
+	s, clk := newTestScheduler(store, checker, 1)
+
+	want := []monitor.Status{monitor.StatusUp, monitor.StatusUp, monitor.StatusUp, monitor.StatusDown}
+	for i, w := range want {
+		runOnce(s)
+		clk.advance(time.Minute)
+		if got := store.statuses[1]; got != w {
+			t.Fatalf("after check %d: status %q, want %q", i+1, got, w)
+		}
+	}
+}
+
+func TestRecoveryResetsRetries(t *testing.T) {
+	store := &fakeStore{monitors: []monitor.Monitor{mon(1, time.Minute, 1)}}
+	checker := &scriptedChecker{script: map[int64][]bool{1: {true, false, true, false, true}}}
+	s, clk := newTestScheduler(store, checker, 1)
+	for range 5 {
+		runOnce(s)
+		clk.advance(time.Minute)
+		if store.statuses[1] == monitor.StatusDown {
+			t.Fatal("isolated failures marked the monitor down")
+		}
+	}
+}
+
 type slowChecker struct {
 	active, peak atomic.Int32
 }
