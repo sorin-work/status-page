@@ -61,6 +61,8 @@ func run() error {
 		}
 	}
 
+	go housekeeping(ctx, st, cfg.Retention, logger.With("component", "housekeeping"))
+
 	sched := scheduler.New(st, monitor.NewChecker(), cfg.CheckWorkers, logger.With("component", "scheduler"))
 	sched.Jitter = 10 * time.Second
 	dispatcher := notify.NewDispatcher(st, logger.With("component", "webhooks"))
@@ -121,6 +123,33 @@ func run() error {
 	stop()
 	<-schedDone
 	return err
+}
+
+// housekeeping prunes old raw checks and expired sessions once at start
+// and then every hour.
+func housekeeping(ctx context.Context, st *store.Store, retention time.Duration, logger *slog.Logger) {
+	run := func() {
+		n, err := st.PruneChecks(ctx, time.Now().Add(-retention))
+		if err != nil {
+			logger.Error("prune checks", "err", err)
+		} else if n > 0 {
+			logger.Info("pruned old checks", "rows", n)
+		}
+		if _, err := st.DeleteExpiredSessions(ctx); err != nil {
+			logger.Error("delete expired sessions", "err", err)
+		}
+	}
+	run()
+	t := time.NewTicker(time.Hour)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			run()
+		}
+	}
 }
 
 // ensureAdmin creates the first admin account when there is none. Without

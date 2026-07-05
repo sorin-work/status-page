@@ -39,6 +39,9 @@ type Config struct {
 	// APIToken enables the JSON API for clients that send it as a bearer
 	// token.
 	APIToken string
+	// Retention is how long raw checks are kept. Daily rollups are kept
+	// forever.
+	Retention time.Duration
 }
 
 // Load builds a Config from the given lookup function, usually os.Getenv.
@@ -54,6 +57,7 @@ func Load(getenv func(string) string) (Config, error) {
 		SessionTTL:      7 * 24 * time.Hour,
 		Location:        time.UTC,
 		DemoTargetURL:   "http://localhost:8081",
+		Retention:       30 * 24 * time.Hour,
 	}
 
 	if v := strings.TrimSpace(getenv("LISTEN_ADDR")); v != "" {
@@ -122,6 +126,15 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg.APIToken = strings.TrimSpace(getenv("API_TOKEN"))
 	if cfg.APIToken != "" && len(cfg.APIToken) < 16 {
 		return Config{}, fmt.Errorf("API_TOKEN: must be at least 16 characters")
+	}
+	if v := strings.TrimSpace(getenv("RETENTION_DAYS")); v != "" {
+		n, err := strconv.Atoi(v)
+		// The 7 day uptime is computed from raw checks, so keep at least
+		// a little more than that.
+		if err != nil || n < 8 || n > 3650 {
+			return Config{}, fmt.Errorf("RETENTION_DAYS: expected a number of days between 8 and 3650, got %q", v)
+		}
+		cfg.Retention = time.Duration(n) * 24 * time.Hour
 	}
 	if v := strings.TrimSpace(getenv("CHECK_WORKERS")); v != "" {
 		n, err := strconv.Atoi(v)

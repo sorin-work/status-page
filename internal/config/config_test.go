@@ -46,13 +46,14 @@ func TestLoadOverrides(t *testing.T) {
 		"TIMEZONE":         "Europe/Bucharest",
 		"SEED_DEMO":        "1",
 		"DEMO_TARGET_URL":  "http://demo:9000",
+		"RETENTION_DAYS":   "14",
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cfg.Addr != "127.0.0.1:9000" || cfg.DatabasePath != "/tmp/x.db" || cfg.LogLevel != "debug" || cfg.ShutdownTimeout != 3*time.Second || cfg.CheckWorkers != 3 ||
 		cfg.SessionTTL != 12*time.Hour || !cfg.CookieSecure || cfg.Location.String() != "Europe/Bucharest" ||
-		!cfg.SeedDemo || cfg.DemoTargetURL != "http://demo:9000" {
+		!cfg.SeedDemo || cfg.DemoTargetURL != "http://demo:9000" || cfg.Retention != 14*24*time.Hour {
 		t.Errorf("unexpected config: %+v", cfg)
 	}
 }
@@ -70,6 +71,8 @@ func TestLoadInvalid(t *testing.T) {
 		"timezone":         {"TIMEZONE": "Mars/Olympus"},
 		"seed demo":        {"SEED_DEMO": "sure"},
 		"short api token":  {"API_TOKEN": "abc"},
+		"retention short":  {"RETENTION_DAYS": "3"},
+		"retention text":   {"RETENTION_DAYS": "forever"},
 	}
 	for name, m := range cases {
 		t.Run(name, func(t *testing.T) {
