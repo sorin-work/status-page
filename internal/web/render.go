@@ -75,10 +75,7 @@ func (s *Server) funcs() template.FuncMap {
 	return template.FuncMap{
 		"duration": formatDuration,
 		"now":      s.now,
-		// nl2br keeps the line breaks of multi-line messages.
-		"nl2br": func(text string) template.HTML {
-			return template.HTML(strings.ReplaceAll(text, "\n", "<br>"))
-		},
+		"nl2br":    nl2br,
 		"ago": func(t time.Time) string {
 			return formatAgo(s.now().Sub(t))
 		},
@@ -149,4 +146,12 @@ func formatAgo(d time.Duration) string {
 	default:
 		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
 	}
+}
+
+// nl2br escapes text and keeps its line breaks. The escaping must happen
+// first: messages are written by admins and API clients but shown on the
+// public page.
+func nl2br(text string) template.HTML {
+	escaped := template.HTMLEscapeString(strings.ReplaceAll(text, "\r\n", "\n"))
+	return template.HTML(strings.ReplaceAll(escaped, "\n", "<br>"))
 }
