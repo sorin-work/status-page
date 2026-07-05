@@ -129,3 +129,13 @@ func (s *Store) LatestChecks(ctx context.Context) (map[int64]monitor.Result, err
 	}
 	return out, rows.Err()
 }
+
+// PruneChecks deletes raw checks older than before. Daily rollups are
+// kept, so long range uptime is not affected.
+func (s *Store) PruneChecks(ctx context.Context, before time.Time) (int64, error) {
+	res, err := s.db.ExecContext(ctx, `DELETE FROM checks WHERE checked_at < ?`, before.Unix())
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}

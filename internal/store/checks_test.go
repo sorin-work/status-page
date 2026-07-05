@@ -144,3 +144,23 @@ func TestLatestChecks(t *testing.T) {
 		t.Errorf("latest of b = %+v", r)
 	}
 }
+
+func TestPruneChecksKeepsRollups(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	m := createMonitor(t, s, "api")
+	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	recordChecks(t, s, m.ID, start, 24*time.Hour, true, false, true, true)
+
+	n, err := s.PruneChecks(ctx, start.Add(48*time.Hour))
+	if err != nil || n != 2 {
+		t.Fatalf("pruned %d, %v", n, err)
+	}
+	if left, _ := s.CountChecks(ctx, m.ID); left != 2 {
+		t.Errorf("%d checks left", left)
+	}
+	stats, _ := s.DailyStats(ctx, m.ID, start, start.AddDate(0, 0, 3))
+	if len(stats) != 4 {
+		t.Errorf("rollups were pruned too: %+v", stats)
+	}
+}
