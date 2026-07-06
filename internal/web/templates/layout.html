@@ -29,6 +29,7 @@
     </div>
   </header>
   <main class="container">
+    {{with .Flash}}<div class="alert success" role="status">{{.}}</div>{{end}}
     {{template "content" .}}
   </main>
   <footer class="site-footer">

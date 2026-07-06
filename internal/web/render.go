@@ -25,9 +25,10 @@ type page struct {
 	Title string
 	Site  string
 	// Nav marks the active admin section.
-	Nav  string
-	User *store.Session
-	Data any
+	Nav   string
+	User  *store.Session
+	Flash string
+	Data  any
 }
 
 // templates holds one parsed template set per page, each combined with the
@@ -99,6 +100,9 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, name
 	p.Site = s.site
 	if p.User == nil {
 		p.User = currentSession(r)
+	}
+	if p.User != nil && p.Flash == "" {
+		p.Flash = s.takeFlash(w, r)
 	}
 	var buf bytes.Buffer
 	if err := t.ExecuteTemplate(&buf, "layout", p); err != nil {

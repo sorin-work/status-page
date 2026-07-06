@@ -101,7 +101,7 @@ func (s *Server) handleCreateIncident(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.publishIncident(r.Context(), notify.EventIncidentCreated, inc, inc.Status, f.Message)
-	http.Redirect(w, r, "/admin/incidents/"+strconv.FormatInt(inc.ID, 10), http.StatusSeeOther)
+	s.redirectWithFlash(w, r, "/admin/incidents/"+strconv.FormatInt(inc.ID, 10), "Incident opened. It is now shown on the status page.")
 }
 
 func (s *Server) loadIncident(w http.ResponseWriter, r *http.Request) (incident.Incident, bool) {
@@ -163,5 +163,5 @@ func (s *Server) handleAddIncidentUpdate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	s.publishIncident(r.Context(), notify.EventIncidentUpdated, inc, status, message)
-	http.Redirect(w, r, "/admin/incidents/"+strconv.FormatInt(inc.ID, 10), http.StatusSeeOther)
+	s.redirectWithFlash(w, r, "/admin/incidents/"+strconv.FormatInt(inc.ID, 10), "Update posted.")
 }

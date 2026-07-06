@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -141,12 +142,16 @@ func (s *Server) handleTestWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Webhooks are not configured.", http.StatusServiceUnavailable)
 		return
 	}
-	s.notifier.Deliver(r.Context(), hook, notify.Event{
+	res := s.notifier.Deliver(r.Context(), hook, notify.Event{
 		Type:      notify.EventTest,
 		Timestamp: s.now().UTC(),
 		Incident:  &notify.IncidentInfo{Title: "Test delivery from " + s.site, Status: "resolved", Impact: "none", Message: "If you can read this, the webhook works."},
 	})
-	http.Redirect(w, r, "/admin/webhooks", http.StatusSeeOther)
+	msg := fmt.Sprintf("Test delivered to %s (HTTP %d).", hook.Name, res.StatusCode)
+	if !res.OK() {
+		msg = fmt.Sprintf("Test delivery to %s failed: %s", hook.Name, res.Error)
+	}
+	s.redirectWithFlash(w, r, "/admin/webhooks/"+itoa64(hook.ID), msg)
 }
 
 // publishIncident sends an incident event if webhooks are configured.

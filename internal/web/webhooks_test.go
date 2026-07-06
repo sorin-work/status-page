@@ -68,6 +68,19 @@ func TestWebhookTestDelivery(t *testing.T) {
 	if rec.Code != http.StatusSeeOther || len(fn.delivered) != 1 || fn.delivered[0].Type != notify.EventTest {
 		t.Errorf("test delivery: %d %+v", rec.Code, fn.delivered)
 	}
+	var flash *http.Cookie
+	for _, ck := range rec.Result().Cookies() {
+		if ck.Name == flashCookie {
+			flash = ck
+		}
+	}
+	if flash == nil {
+		t.Fatal("no flash message")
+	}
+	body := getWith(t, srv, rec.Header().Get("Location"), c, flash).Body.String()
+	if !strings.Contains(body, "Test delivered to x (HTTP 200).") {
+		t.Error("flash message not shown")
+	}
 }
 
 func TestWebhookDeliveriesPage(t *testing.T) {

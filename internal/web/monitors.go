@@ -145,7 +145,7 @@ func (s *Server) handleCreateMonitor(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/admin/monitors/"+strconv.FormatInt(created.ID, 10), http.StatusSeeOther)
+	s.redirectWithFlash(w, r, "/admin/monitors/"+strconv.FormatInt(created.ID, 10), "Monitor created. The first check runs within a few seconds.")
 }
 
 // pathID parses the {id} path value.
@@ -197,7 +197,7 @@ func (s *Server) handleUpdateMonitor(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/admin/monitors/"+strconv.FormatInt(m.ID, 10), http.StatusSeeOther)
+	s.redirectWithFlash(w, r, "/admin/monitors/"+strconv.FormatInt(m.ID, 10), "Changes saved.")
 }
 
 func (s *Server) handleDeleteMonitor(w http.ResponseWriter, r *http.Request) {
@@ -210,7 +210,7 @@ func (s *Server) handleDeleteMonitor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logger.Info("monitor deleted", "monitor", m.ID, "name", m.Name)
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	s.redirectWithFlash(w, r, "/admin", "Deleted "+m.Name+".")
 }
 
 func (s *Server) handlePauseMonitor(w http.ResponseWriter, r *http.Request) {

@@ -113,7 +113,7 @@ func (s *Server) handleCreateMaintenance(w http.ResponseWriter, r *http.Request)
 		s.serverError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/admin/maintenance", http.StatusSeeOther)
+	s.redirectWithFlash(w, r, "/admin/maintenance", "Maintenance scheduled.")
 }
 
 func (s *Server) handleEndMaintenance(w http.ResponseWriter, r *http.Request) {
