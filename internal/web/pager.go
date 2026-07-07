@@ -16,7 +16,7 @@ type pager struct {
 // newPager reads ?page= from the request. Out of range values are clamped.
 func newPager(r *http.Request, total, perPage int) pager {
 	p := pager{Page: 1, PerPage: perPage, Total: total}
-	p.Pages = total / perPage
+	p.Pages = (total + perPage - 1) / perPage
 	if p.Pages < 1 {
 		p.Pages = 1
 	}

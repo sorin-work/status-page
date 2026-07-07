@@ -21,6 +21,11 @@ func TestPager(t *testing.T) {
 		{"?page=-3", 100, 1, 2, 0, false, true},
 		{"?page=abc", 150, 1, 3, 0, false, true},
 		{"?page=2", 150, 2, 3, 50, true, true},
+		// A partial last page still counts as a page.
+		{"", 120, 1, 3, 0, false, true},
+		{"?page=3", 120, 3, 3, 100, true, false},
+		{"?page=9", 101, 3, 3, 100, true, false},
+		{"", 1, 1, 1, 0, false, false},
 	}
 	for _, tc := range cases {
 		p := newPager(httptest.NewRequest(http.MethodGet, "/x"+tc.query, nil), tc.total, 50)
