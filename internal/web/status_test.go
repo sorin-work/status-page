@@ -35,6 +35,9 @@ func TestStatusPageBars(t *testing.T) {
 	if !strings.Contains(body, "100.00% uptime") {
 		t.Error("missing 90 day uptime")
 	}
+	if !strings.Contains(body, `<span class="tip"><strong>`) {
+		t.Error("bars have no tooltips")
+	}
 }
 
 func TestStatusPageActiveIncident(t *testing.T) {

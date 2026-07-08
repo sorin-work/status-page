@@ -584,8 +584,47 @@ form.inline {
   background: var(--down);
 }
 
-.bar:hover {
+.bar {
+  position: relative;
+}
+
+.bar:hover,
+.bar:focus {
   opacity: 0.75;
+  outline: none;
+}
+
+.bar .tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #1f2933;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.bar:hover .tip,
+.bar:focus .tip {
+  display: block;
+}
+
+.bar:nth-child(-n + 8) .tip {
+  left: 0;
+  transform: none;
+}
+
+.bar:nth-last-child(-n + 8) .tip {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 .bars-legend {
