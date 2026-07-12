@@ -1,8 +1,13 @@
 package web
 
 import (
+	"context"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/sorin-work/status-page/internal/incident"
 )
 
 func TestAPIIncidentLifecycle(t *testing.T) {
@@ -32,6 +37,30 @@ func TestAPIIncidentLifecycle(t *testing.T) {
 	list := decode[struct{ Incidents []apiIncident }](t, apiCall(t, srv, http.MethodGet, "/api/incidents", nil))
 	if len(list.Incidents) != 1 {
 		t.Errorf("list = %+v", list)
+	}
+}
+
+func TestAPIIncidentUpdatesNeedToken(t *testing.T) {
+	srv, st := newAPIServer(t)
+	inc, err := st.CreateIncident(context.Background(), incident.Incident{Title: "API errors", Status: incident.StatusInvestigating, Impact: incident.ImpactMinor}, "Looking.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := `{"status":"resolved","message":"All fixed, nothing to see here."}`
+	for _, auth := range []string{"", "Bearer nope"} {
+		req := httptest.NewRequest(http.MethodPost, "/api/incidents/"+itoa(inc.ID)+"/updates", strings.NewReader(body))
+		if auth != "" {
+			req.Header.Set("Authorization", auth)
+		}
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("%q: got %d", auth, rec.Code)
+		}
+	}
+	got, _ := st.GetIncident(context.Background(), inc.ID)
+	if got.Status != incident.StatusInvestigating || len(got.Updates) != 1 {
+		t.Errorf("anonymous update was applied: %+v", got)
 	}
 }
 
