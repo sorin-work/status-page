@@ -675,3 +675,54 @@ form.inline {
 .site-footer a {
   color: var(--muted);
 }
+
+/* Small screens */
+
+@media (max-width: 720px) {
+  .site-header .inner {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+
+  .nav {
+    order: 3;
+    flex-basis: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .bars {
+    gap: 1px;
+    height: 28px;
+  }
+
+  /* Only the last 30 days fit on a phone. */
+  .bars .bar:nth-child(-n + 60) {
+    display: none;
+  }
+
+  .bars-legend span:first-child::after {
+    content: " (30 days on small screens)";
+  }
+
+  th,
+  td {
+    padding: 8px;
+  }
+
+  .component-head {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
