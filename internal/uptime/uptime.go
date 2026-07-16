@@ -29,10 +29,13 @@ func (r Ratio) Add(o Ratio) Ratio {
 	return Ratio{Up: r.Up + o.Up, Total: r.Total + o.Total}
 }
 
-// String formats the ratio for display, e.g. "99.95%".
+// String formats the ratio for display, e.g. "99.95%". The value is
+// truncated, not rounded: 99.996% must not be shown as 100.00% when there
+// was downtime. Integer math avoids float artifacts like 56.99999.
 func (r Ratio) String() string {
 	if !r.HasData() {
 		return "no data"
 	}
-	return fmt.Sprintf("%.2f%%", r.Percent())
+	basisPoints := int64(r.Up) * 10000 / int64(r.Total)
+	return fmt.Sprintf("%d.%02d%%", basisPoints/100, basisPoints%100)
 }

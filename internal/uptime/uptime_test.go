@@ -20,6 +20,12 @@ func TestRatioString(t *testing.T) {
 		{Ratio{Up: 999, Total: 1000}, "99.90%"},
 		{Ratio{Up: 1, Total: 4}, "25.00%"},
 		{Ratio{Up: 0, Total: 5}, "0.00%"},
+		// One failed check in a quarter of minutely checks is still
+		// downtime and must not show as 100%.
+		{Ratio{Up: 129599, Total: 129600}, "99.99%"},
+		{Ratio{Up: 99999, Total: 100000}, "99.99%"},
+		{Ratio{Up: 2, Total: 3}, "66.66%"},
+		{Ratio{Up: 57, Total: 100}, "57.00%"},
 	}
 	for _, tc := range cases {
 		if got := tc.r.String(); got != tc.want {
