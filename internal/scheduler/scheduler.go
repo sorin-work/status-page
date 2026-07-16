@@ -121,7 +121,10 @@ func (s *Scheduler) RunDue(ctx context.Context) {
 				return
 			}
 			defer func() { <-s.sem }()
-			s.runCheck(ctx, m)
+			// A check that already started is allowed to finish when
+			// the scheduler stops; cancelling it would record a failure
+			// that never happened. Its own timeout still applies.
+			s.runCheck(context.WithoutCancel(ctx), m)
 		}(m)
 	}
 }

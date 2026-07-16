@@ -259,6 +259,36 @@ func TestWorkerLimit(t *testing.T) {
 	}
 }
 
+// ctxChecker fails when its context is cancelled during the check.
+type ctxChecker struct{ started chan struct{} }
+
+func (c *ctxChecker) Check(ctx context.Context, m monitor.Monitor) monitor.Result {
+	close(c.started)
+	select {
+	case <-ctx.Done():
+		return monitor.Result{MonitorID: m.ID, Error: ctx.Err().Error()}
+	case <-time.After(50 * time.Millisecond):
+		return monitor.Result{MonitorID: m.ID, Up: true}
+	}
+}
+
+func TestShutdownLetsRunningChecksFinish(t *testing.T) {
+	store := &fakeStore{monitors: []monitor.Monitor{mon(1, time.Minute, 0)}}
+	checker := &ctxChecker{started: make(chan struct{})}
+	s, _ := newTestScheduler(store, checker, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	s.RunDue(ctx)
+	<-checker.started
+	cancel()
+	s.Wait()
+	if len(store.checks) != 1 || !store.checks[0].Up {
+		t.Fatalf("check interrupted by shutdown: %+v", store.checks)
+	}
+	if store.statuses[1] == monitor.StatusDown {
+		t.Error("shutdown marked the monitor down")
+	}
+}
+
 func TestRunStopsOnCancel(t *testing.T) {
 	store := &fakeStore{monitors: []monitor.Monitor{mon(1, time.Minute, 0)}}
 	s, _ := newTestScheduler(store, &scriptedChecker{}, 1)
