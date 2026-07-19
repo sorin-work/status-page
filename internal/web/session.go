@@ -4,9 +4,12 @@ import (
 	"context"
 	"crypto/subtle"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sorin-work/status-page/internal/auth"
 	"github.com/sorin-work/status-page/internal/store"
@@ -97,7 +100,18 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 	next := r.PostFormValue("next")
 
+	ip := clientIP(r)
+	if blocked, wait := s.logins.Blocked(ip); blocked {
+		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())+1))
+		s.render(w, r, http.StatusTooManyRequests, "login", page{Title: "Log in", Data: loginData{
+			Username: username, Next: next, Error: fmt.Sprintf("Too many failed attempts. Try again in %s.", formatDuration(wait.Round(time.Minute)+time.Minute)),
+		}})
+		return
+	}
+
 	fail := func() {
+		s.logins.Fail(ip)
+		s.logger.Warn("failed login", "username", username, "ip", ip)
 		s.render(w, r, http.StatusUnauthorized, "login", page{Title: "Log in", Data: loginData{
 			Username: username, Next: next, Error: "Wrong username or password.",
 		}})
@@ -148,6 +162,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		Secure:   s.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
+	s.logins.Reset(ip)
 	s.logger.Info("admin logged in", "username", user.Username)
 
 	target := "/admin"

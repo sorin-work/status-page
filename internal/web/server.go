@@ -42,6 +42,7 @@ type Server struct {
 	loc          *time.Location
 	apiToken     string
 	notifier     Notifier
+	logins       *loginLimiter
 }
 
 // New builds a Server and registers its routes.
@@ -74,6 +75,7 @@ func New(opts Options) (*Server, error) {
 		apiToken:     opts.APIToken,
 		notifier:     opts.Notifier,
 	}
+	s.logins = newLoginLimiter(5, 15*time.Minute, s.now)
 	tmpl, err := loadTemplates(s.funcs())
 	if err != nil {
 		return nil, err
