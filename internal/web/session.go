@@ -165,11 +165,22 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	s.logins.Reset(ip)
 	s.logger.Info("admin logged in", "username", user.Username)
 
-	target := "/admin"
-	if strings.HasPrefix(next, "/") {
-		target = next
+	http.Redirect(w, r, safeNext(next), http.StatusSeeOther)
+}
+
+// safeNext returns next if it is a path on this site, or /admin. Values
+// like "//evil.test" or "/\evil.test" start with a slash but browsers
+// treat them as links to another host.
+func safeNext(next string) string {
+	const fallback = "/admin"
+	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.HasPrefix(next, "/\\") {
+		return fallback
 	}
-	http.Redirect(w, r, target, http.StatusSeeOther)
+	u, err := url.Parse(next)
+	if err != nil || u.Scheme != "" || u.Host != "" || strings.ContainsAny(next, "\\\r\n") {
+		return fallback
+	}
+	return next
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {

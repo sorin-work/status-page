@@ -145,6 +145,32 @@ func TestLoginRedirectsToNext(t *testing.T) {
 	}
 }
 
+func TestLoginRefusesExternalRedirects(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	for _, next := range []string{"//evil.example/phish", "/\\evil.example", "https://evil.example", "/admin\\@evil.example", "javascript:alert(1)"} {
+		rec := postForm(t, srv, "/admin/login", url.Values{"username": {"admin"}, "password": {"demo-password"}, "next": {next}})
+		if got := rec.Header().Get("Location"); got != "/admin" {
+			t.Errorf("next=%q redirected to %q", next, got)
+		}
+	}
+}
+
+func TestSafeNext(t *testing.T) {
+	for in, want := range map[string]string{
+		"":                      "/admin",
+		"/admin/monitors/3":     "/admin/monitors/3",
+		"/admin?range=7d":       "/admin?range=7d",
+		"//evil.example":        "/admin",
+		"/\\evil.example":       "/admin",
+		"http://evil.example/x": "/admin",
+	} {
+		if got := safeNext(in); got != want {
+			t.Errorf("safeNext(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestLogoutNeedsCSRF(t *testing.T) {
 	srv, st := newTestServer(t)
 	createAdmin(t, st)
