@@ -289,6 +289,50 @@ func TestShutdownLetsRunningChecksFinish(t *testing.T) {
 	}
 }
 
+// blockingChecker holds every check until release is closed.
+type blockingChecker struct {
+	calls   atomic.Int32
+	release chan struct{}
+}
+
+func (c *blockingChecker) Check(_ context.Context, m monitor.Monitor) monitor.Result {
+	c.calls.Add(1)
+	<-c.release
+	return monitor.Result{MonitorID: m.ID, Error: "timeout"}
+}
+
+func TestSlowCheckIsNotStartedTwice(t *testing.T) {
+	store := &fakeStore{monitors: []monitor.Monitor{mon(1, 10*time.Second, 0)}}
+	checker := &blockingChecker{release: make(chan struct{})}
+	s, clk := newTestScheduler(store, checker, 4)
+	var transitions atomic.Int32
+	s.OnTransition = func(context.Context, Transition) { transitions.Add(1) }
+
+	ctx := context.Background()
+	// The check hangs for longer than the interval; the scheduler keeps
+	// ticking meanwhile.
+	for range 5 {
+		s.RunDue(ctx)
+		clk.advance(15 * time.Second)
+	}
+	time.Sleep(20 * time.Millisecond)
+	close(checker.release)
+	s.Wait()
+
+	if n := checker.calls.Load(); n != 1 {
+		t.Fatalf("%d checks started for one monitor, want 1", n)
+	}
+	if n := transitions.Load(); n != 1 {
+		t.Errorf("%d transitions, want 1", n)
+	}
+
+	// Once it has finished the monitor is due again.
+	runOnce(s)
+	if n := checker.calls.Load(); n != 2 {
+		t.Errorf("monitor not checked again after the slow check: %d", n)
+	}
+}
+
 func TestRunStopsOnCancel(t *testing.T) {
 	store := &fakeStore{monitors: []monitor.Monitor{mon(1, time.Minute, 0)}}
 	s, _ := newTestScheduler(store, &scriptedChecker{}, 1)

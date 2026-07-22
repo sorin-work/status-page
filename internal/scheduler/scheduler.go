@@ -54,6 +54,9 @@ type monitorState struct {
 	lastRun  time.Time
 	failures int
 	status   monitor.Status
+	// running is set while a check of the monitor is queued or in
+	// progress, so a slow check is never started twice.
+	running bool
 }
 
 // DefaultWorkers is how many checks may run at the same time.
@@ -109,7 +112,7 @@ func (s *Scheduler) RunDue(ctx context.Context) {
 	}
 	now := s.now()
 	for _, m := range monitors {
-		if !s.isDue(m, now) {
+		if !s.claim(m, now) {
 			continue
 		}
 		s.wg.Add(1)
@@ -118,6 +121,7 @@ func (s *Scheduler) RunDue(ctx context.Context) {
 			select {
 			case s.sem <- struct{}{}:
 			case <-ctx.Done():
+				s.release(m.ID)
 				return
 			}
 			defer func() { <-s.sem }()
@@ -129,21 +133,38 @@ func (s *Scheduler) RunDue(ctx context.Context) {
 	}
 }
 
-func (s *Scheduler) isDue(m monitor.Monitor, now time.Time) bool {
+// claim reports whether a check of m is due and, if so, marks it as
+// running. The interval counts from when a check starts, not when it
+// ends, and a monitor whose previous check is still running is skipped.
+func (s *Scheduler) claim(m monitor.Monitor, now time.Time) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	st, ok := s.state[m.ID]
 	if !ok {
-		if s.Jitter <= 0 {
-			return true
+		st = &monitorState{status: m.Status}
+		s.state[m.ID] = st
+		if s.Jitter > 0 {
+			// Pretend the last run happened so that the first one lands
+			// somewhere inside the jitter window.
+			delay := time.Duration(rand.Int64N(int64(s.Jitter)))
+			st.lastRun = now.Add(delay - m.Interval)
 		}
-		// Pretend the last run happened so that the first one lands
-		// somewhere inside the jitter window.
-		delay := time.Duration(rand.Int64N(int64(s.Jitter)))
-		s.state[m.ID] = &monitorState{status: m.Status, lastRun: now.Add(delay - m.Interval)}
-		return delay == 0
 	}
-	return !now.Before(st.lastRun.Add(m.Interval))
+	if st.running || (!st.lastRun.IsZero() && now.Before(st.lastRun.Add(m.Interval))) {
+		return false
+	}
+	st.running = true
+	st.lastRun = now
+	return true
+}
+
+// release clears the running flag of a check that never ran.
+func (s *Scheduler) release(id int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if st, ok := s.state[id]; ok {
+		st.running = false
+	}
 }
 
 func (s *Scheduler) runCheck(ctx context.Context, m monitor.Monitor) {
@@ -175,7 +196,7 @@ func (s *Scheduler) apply(m monitor.Monitor, res monitor.Result) (from, to monit
 		st = &monitorState{status: m.Status}
 		s.state[m.ID] = st
 	}
-	st.lastRun = s.now()
+	st.running = false
 	from = st.status
 
 	if res.Up {
