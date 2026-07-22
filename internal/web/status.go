@@ -122,3 +122,37 @@ func (s *Server) handlePublicIncident(w http.ResponseWriter, r *http.Request) {
 		Component string
 	}{inc, compName}})
 }
+
+const historyPerPage = 20
+
+type historyMonth struct {
+	Label     string
+	Incidents []incident.Incident
+}
+
+// handleHistory lists resolved incidents grouped by month.
+func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
+	total, err := s.store.CountResolvedIncidents(r.Context())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	pg := newPager(r, total, historyPerPage)
+	list, err := s.store.ListResolvedIncidents(r.Context(), pg.PerPage, pg.Offset())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	var months []historyMonth
+	for _, inc := range list {
+		label := inc.StartedAt.In(s.loc).Format("January 2006")
+		if len(months) == 0 || months[len(months)-1].Label != label {
+			months = append(months, historyMonth{Label: label})
+		}
+		months[len(months)-1].Incidents = append(months[len(months)-1].Incidents, inc)
+	}
+	s.render(w, r, http.StatusOK, "history", page{Title: "Incident history", Data: struct {
+		Months []historyMonth
+		Pager  pager
+	}{months, pg}})
+}

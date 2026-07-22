@@ -1,0 +1,25 @@
+{{define "content"}}
+<p><a href="/">&larr; Back to status</a></p>
+<h1>Incident history</h1>
+{{range .Data.Months}}
+<h2>{{.Label}}</h2>
+<div class="card past-incidents">
+  {{range .Incidents}}
+  <div class="past-incident">
+    <a href="/incidents/{{.ID}}"><strong>{{.Title}}</strong></a>
+    <span class="badge {{.Impact}}">{{.Impact}}</span>
+    <div class="muted small">{{datetime .StartedAt}} · lasted {{duration (.Duration now)}}</div>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="card empty">No incidents reported.</div>
+{{end}}
+{{with .Data.Pager}}{{if gt .Pages 1}}
+<div class="pagination">
+  {{if .HasPrev}}<a href="?page={{.Prev}}">&larr; Newer</a>{{end}}
+  <span class="muted">Page {{.Page}} of {{.Pages}}</span>
+  {{if .HasNext}}<a href="?page={{.Next}}">Older &rarr;</a>{{end}}
+</div>
+{{end}}{{end}}
+{{end}}

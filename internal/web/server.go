@@ -94,6 +94,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /{$}", s.handleStatusPage)
 	s.mux.HandleFunc("GET /incidents/{id}", s.handlePublicIncident)
+	s.mux.HandleFunc("GET /history", s.handleHistory)
 
 	s.mux.HandleFunc("GET /api/status", s.apiStatus)
 	s.mux.Handle("GET /api/monitors", s.apiAuth(s.apiListMonitors))

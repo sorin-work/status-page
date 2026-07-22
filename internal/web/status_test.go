@@ -161,6 +161,40 @@ func TestIncidentMessagesAreEscaped(t *testing.T) {
 	}
 }
 
+func TestHistoryPage(t *testing.T) {
+	srv, st := newTestServer(t)
+	ctx := context.Background()
+	if body := get(t, srv, "/history").Body.String(); !strings.Contains(body, "No incidents reported") {
+		t.Error("missing empty state")
+	}
+	for _, d := range []struct {
+		title string
+		at    time.Time
+	}{
+		{"March outage", time.Date(2026, 3, 10, 9, 0, 0, 0, time.UTC)},
+		{"May outage", time.Date(2026, 5, 2, 9, 0, 0, 0, time.UTC)},
+		{"Open incident", time.Date(2026, 5, 3, 9, 0, 0, 0, time.UTC)},
+	} {
+		inc, err := st.CreateIncident(ctx, incident.Incident{Title: d.title, Status: incident.StatusInvestigating, Impact: incident.ImpactMinor, StartedAt: d.at}, "x")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if d.title != "Open incident" {
+			if _, err := st.AddIncidentUpdate(ctx, inc.ID, incident.StatusResolved, "done", d.at.Add(time.Hour)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	body := get(t, srv, "/history").Body.String()
+	may, march := strings.Index(body, "May 2026"), strings.Index(body, "March 2026")
+	if may < 0 || march < 0 || may > march {
+		t.Errorf("months missing or out of order")
+	}
+	if strings.Contains(body, "Open incident") {
+		t.Error("unresolved incident listed in the history")
+	}
+}
+
 func TestStatusPageEmpty(t *testing.T) {
 	srv, _ := newTestServer(t)
 	body := get(t, srv, "/").Body.String()

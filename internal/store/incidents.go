@@ -236,3 +236,16 @@ func (s *Store) ListRecentResolved(ctx context.Context, limit int) ([]incident.I
 	}
 	return list, nil
 }
+
+// ListResolvedIncidents pages through resolved incidents, newest first.
+func (s *Store) ListResolvedIncidents(ctx context.Context, limit, offset int) ([]incident.Incident, error) {
+	return s.queryIncidents(ctx, `SELECT `+incidentColumns+` FROM incidents i
+		WHERE i.status = 'resolved' ORDER BY i.started_at DESC, i.id DESC LIMIT ? OFFSET ?`, limit, offset)
+}
+
+// CountResolvedIncidents returns the number of resolved incidents.
+func (s *Store) CountResolvedIncidents(ctx context.Context) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM incidents WHERE status = 'resolved'`).Scan(&n)
+	return n, err
+}
