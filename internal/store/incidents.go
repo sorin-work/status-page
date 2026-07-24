@@ -225,7 +225,7 @@ func (s *Store) ListOpenIncidents(ctx context.Context) ([]incident.Incident, err
 // up to limit, with their timelines.
 func (s *Store) ListRecentResolved(ctx context.Context, limit int) ([]incident.Incident, error) {
 	list, err := s.queryIncidents(ctx, `SELECT `+incidentColumns+` FROM incidents i
-		WHERE i.status = 'resolved' ORDER BY i.started_at LIMIT ?`, limit)
+		WHERE i.status = 'resolved' ORDER BY i.started_at DESC, i.id DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}

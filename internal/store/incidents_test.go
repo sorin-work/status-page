@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -139,6 +140,36 @@ func TestListOpenIncidents(t *testing.T) {
 	if len(list) != 1 || list[0].ID != open.ID || len(list[0].Updates) != 1 {
 		t.Errorf("open incidents = %+v", list)
 	}
+}
+
+func TestListRecentResolvedKeepsTheNewest(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	start := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	for i := range 5 {
+		inc, err := s.CreateIncident(ctx, newIncident(fmt.Sprintf("incident %d", i), start.AddDate(0, 0, i)), "x")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.AddIncidentUpdate(ctx, inc.ID, incident.StatusResolved, "done", start.AddDate(0, 0, i).Add(time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	list, err := s.ListRecentResolved(ctx, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 2 || list[0].Title != "incident 4" || list[1].Title != "incident 3" {
+		t.Errorf("got %v, want the two newest incidents, newest first", titles(list))
+	}
+}
+
+func titles(list []incident.Incident) []string {
+	var out []string
+	for _, inc := range list {
+		out = append(out, inc.Title)
+	}
+	return out
 }
 
 func TestListRecentResolved(t *testing.T) {

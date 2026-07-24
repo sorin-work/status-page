@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -158,6 +159,29 @@ func TestIncidentMessagesAreEscaped(t *testing.T) {
 		if !strings.Contains(body, "Investigating.<br>&lt;script&gt;") {
 			t.Errorf("%s: message not escaped as expected", path)
 		}
+	}
+}
+
+func TestStatusPageShowsLatestPastIncidents(t *testing.T) {
+	srv, st := newTestServer(t)
+	ctx := context.Background()
+	start := time.Now().AddDate(0, 0, -30)
+	for i := range pastIncidentLimit + 2 {
+		inc, err := st.CreateIncident(ctx, incident.Incident{Title: fmt.Sprintf("Outage #%02d", i), Status: incident.StatusInvestigating, Impact: incident.ImpactMinor, StartedAt: start.AddDate(0, 0, i)}, "x")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := st.AddIncidentUpdate(ctx, inc.ID, incident.StatusResolved, "done", start.AddDate(0, 0, i).Add(time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	body := get(t, srv, "/").Body.String()
+	newest, older := strings.Index(body, "Outage #11"), strings.Index(body, "Outage #10")
+	if newest < 0 || older < 0 || newest > older {
+		t.Error("the newest incidents are missing or not listed first")
+	}
+	if strings.Contains(body, "Outage #00") || strings.Contains(body, "Outage #01") {
+		t.Error("the oldest incidents are listed instead of the latest")
 	}
 }
 
