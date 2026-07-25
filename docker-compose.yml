@@ -3,6 +3,7 @@ name: status-page
 services:
   app:
     build: .
+    restart: unless-stopped
     environment:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-demo-password}
@@ -10,23 +11,37 @@ services:
       TIMEZONE: ${TIMEZONE:-UTC}
       # Bearer token for the JSON API, see docs/api.md.
       API_TOKEN: ${API_TOKEN:-demo-api-token-change-me}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       # Fills an empty database with demo monitors and 90 days of history.
       SEED_DEMO: ${SEED_DEMO:-true}
       DEMO_TARGET_URL: http://demo-target:8081
     volumes:
       - app-data:/data
     depends_on:
-      - demo-target
+      demo-target:
+        condition: service_healthy
     ports:
       - '${WEB_PORT:-4417}:4417'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://localhost:4417/healthz']
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 5
 
   # A fake shop for the demo monitors to check. Switch outages on with
   #   docker compose exec demo-target wget -qO- --post-data= 'localhost:8081/control/outage?service=api&state=on'
   demo-target:
     build: .
     command: ['demotarget']
+    restart: unless-stopped
     environment:
       WEBHOOK_SECRET: demo-webhook-secret
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://localhost:8081/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
 volumes:
   app-data:
