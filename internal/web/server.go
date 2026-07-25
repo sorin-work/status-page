@@ -30,12 +30,13 @@ type Options struct {
 
 // Server is the HTTP handler of the application.
 type Server struct {
-	store  *store.Store
-	logger *slog.Logger
-	site   string
-	now    func() time.Time
-	tmpl   *templates
-	mux    *http.ServeMux
+	store   *store.Store
+	logger  *slog.Logger
+	site    string
+	now     func() time.Time
+	tmpl    *templates
+	mux     *http.ServeMux
+	handler http.Handler
 
 	sessionTTL   time.Duration
 	cookieSecure bool
@@ -82,11 +83,12 @@ func New(opts Options) (*Server, error) {
 	}
 	s.tmpl = tmpl
 	s.routes()
+	s.handler = s.logRequests(s.withSession(s.mux))
 	return s, nil
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.withSession(s.mux).ServeHTTP(w, r)
+	s.handler.ServeHTTP(w, r)
 }
 
 func (s *Server) routes() {
