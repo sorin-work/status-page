@@ -37,8 +37,8 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 }
 
 func (s *Server) apiServerError(w http.ResponseWriter, r *http.Request, err error) {
-	s.logger.Error("api request failed", "method", r.Method, "path", r.URL.Path, "err", err)
-	writeError(w, http.StatusInternalServerError, "internal error")
+	s.logger.Error("api request failed", "method", r.Method, "path", r.URL.Path, "request_id", requestID(r), "err", err)
+	writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error", "request_id": requestID(r)})
 }
 
 // decodeJSON reads a JSON body into v and rejects unknown fields.

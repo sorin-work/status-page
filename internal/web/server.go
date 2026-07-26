@@ -83,7 +83,7 @@ func New(opts Options) (*Server, error) {
 	}
 	s.tmpl = tmpl
 	s.routes()
-	s.handler = s.logRequests(s.withSession(s.mux))
+	s.handler = withRequestID(s.logRequests(s.withSession(s.mux)))
 	return s, nil
 }
 

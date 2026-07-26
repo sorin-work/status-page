@@ -115,8 +115,8 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, name
 }
 
 func (s *Server) serverError(w http.ResponseWriter, r *http.Request, err error) {
-	s.logger.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
-	http.Error(w, "Something went wrong. Please try again.", http.StatusInternalServerError)
+	s.logger.Error("request failed", "method", r.Method, "path", r.URL.Path, "request_id", requestID(r), "err", err)
+	http.Error(w, "Something went wrong. Please try again. (request "+requestID(r)+")", http.StatusInternalServerError)
 }
 
 // formatDuration prints short durations such as 30s, 5m or 1h30m.

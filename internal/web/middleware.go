@@ -1,10 +1,13 @@
 package web
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/sorin-work/status-page/internal/auth"
 )
 
 // statusRecorder remembers the status code and size of a response.
@@ -58,6 +61,50 @@ func (s *Server) logRequests(next http.Handler) http.Handler {
 			"bytes", rec.bytes,
 			"duration", time.Since(start).Round(time.Microsecond),
 			"ip", clientIP(r),
+			"request_id", requestID(r),
 		)
+	})
+}
+
+const requestIDHeader = "X-Request-ID"
+
+const requestIDKey ctxKey = 100
+
+// requestID returns the ID assigned to the request, if any.
+func requestID(r *http.Request) string {
+	id, _ := r.Context().Value(requestIDKey).(string)
+	return id
+}
+
+// validRequestID accepts IDs from a proxy in front of us if they are short
+// and harmless in log lines.
+func validRequestID(id string) bool {
+	if id == "" || len(id) > 64 {
+		return false
+	}
+	for _, c := range id {
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '_', c == '.':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// withRequestID tags every request with an ID that is sent back in the
+// X-Request-ID header and included in log lines and error pages.
+func withRequestID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.Header.Get(requestIDHeader)
+		if !validRequestID(id) {
+			token, err := auth.NewToken()
+			if err != nil {
+				token = "000000000000"
+			}
+			id = token[:12]
+		}
+		w.Header().Set(requestIDHeader, id)
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), requestIDKey, id)))
 	})
 }
