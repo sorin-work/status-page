@@ -46,6 +46,35 @@ func TestScheduleMaintenance(t *testing.T) {
 	}
 }
 
+func TestScheduleMaintenanceInDisplayTimeZone(t *testing.T) {
+	loc, err := time.LoadLocation("Europe/Bucharest")
+	if err != nil {
+		t.Skip("no tz database")
+	}
+	srv, st := newTestServer(t)
+	srv.loc = loc
+	createAdmin(t, st)
+	c, csrf := login(t, srv)
+
+	day := time.Now().In(loc).AddDate(0, 0, 2)
+	start := time.Date(day.Year(), day.Month(), day.Day(), 2, 0, 0, 0, loc)
+	rec := postForm(t, srv, "/admin/maintenance", url.Values{
+		"csrf": {csrf}, "title": {"Night upgrade"},
+		"starts_at": {start.Format(datetimeLocal)}, "ends_at": {start.Add(time.Hour).Format(datetimeLocal)},
+	}, c)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("create: %d", rec.Code)
+	}
+	list, _ := st.ListCurrentMaintenance(context.Background(), time.Now())
+	if len(list) != 1 || !list[0].StartsAt.Equal(start) {
+		t.Fatalf("02:00 Bucharest stored as %v, want %v", list[0].StartsAt, start.UTC())
+	}
+	// And it is shown back as 02:00 local time.
+	if body := getWith(t, srv, "/admin/maintenance", c).Body.String(); !strings.Contains(body, start.Format("2006-01-02")+" 02:00") {
+		t.Error("window not shown at the time it was entered")
+	}
+}
+
 func TestEndAndDeleteMaintenance(t *testing.T) {
 	srv, st := newTestServer(t)
 	createAdmin(t, st)

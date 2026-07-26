@@ -83,12 +83,13 @@ func (s *Server) handleCreateMaintenance(w http.ResponseWriter, r *http.Request)
 	win := maintenance.Window{Title: f.Title, Description: f.Description, ComponentID: f.ComponentID}
 	var err error
 	if f.StartsAt != "" {
-		if win.StartsAt, err = time.Parse(datetimeLocal, f.StartsAt); err != nil {
+		// The form shows and expects times in the display time zone.
+		if win.StartsAt, err = time.ParseInLocation(datetimeLocal, f.StartsAt, s.loc); err != nil {
 			f.Errors["starts_at"] = "is not a valid date and time"
 		}
 	}
 	if f.EndsAt != "" {
-		if win.EndsAt, err = time.Parse(datetimeLocal, f.EndsAt); err != nil {
+		if win.EndsAt, err = time.ParseInLocation(datetimeLocal, f.EndsAt, s.loc); err != nil {
 			f.Errors["ends_at"] = "is not a valid date and time"
 		}
 	}
