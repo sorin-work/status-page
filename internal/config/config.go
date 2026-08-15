@@ -16,6 +16,8 @@ type Config struct {
 	DatabasePath string
 	// LogLevel is one of debug, info, warn or error.
 	LogLevel string
+	// LogFormat is text or json.
+	LogFormat string
 	// ShutdownTimeout bounds how long a graceful shutdown may take.
 	ShutdownTimeout time.Duration
 	// CheckWorkers is how many checks may run at the same time.
@@ -50,6 +52,7 @@ func Load(getenv func(string) string) (Config, error) {
 		Addr:            ":4417",
 		DatabasePath:    "data/status.db",
 		LogLevel:        "info",
+		LogFormat:       "text",
 		ShutdownTimeout: 10 * time.Second,
 		CheckWorkers:    8,
 		AdminUsername:   "admin",
@@ -74,6 +77,12 @@ func Load(getenv func(string) string) (Config, error) {
 		default:
 			return Config{}, fmt.Errorf("LOG_LEVEL: unknown level %q", v)
 		}
+	}
+	if v := strings.ToLower(strings.TrimSpace(getenv("LOG_FORMAT"))); v != "" {
+		if v != "text" && v != "json" {
+			return Config{}, fmt.Errorf("LOG_FORMAT: expected text or json, got %q", v)
+		}
+		cfg.LogFormat = v
 	}
 	if v := strings.TrimSpace(getenv("SHUTDOWN_TIMEOUT")); v != "" {
 		d, err := time.ParseDuration(v)

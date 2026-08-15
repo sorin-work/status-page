@@ -39,6 +39,7 @@ func TestLoadOverrides(t *testing.T) {
 		"LISTEN_ADDR":      "127.0.0.1:9000",
 		"DATABASE_PATH":    "/tmp/x.db",
 		"LOG_LEVEL":        "DEBUG",
+		"LOG_FORMAT":       "JSON",
 		"SHUTDOWN_TIMEOUT": "3s",
 		"CHECK_WORKERS":    "3",
 		"SESSION_TTL":      "12h",
@@ -53,7 +54,8 @@ func TestLoadOverrides(t *testing.T) {
 	}
 	if cfg.Addr != "127.0.0.1:9000" || cfg.DatabasePath != "/tmp/x.db" || cfg.LogLevel != "debug" || cfg.ShutdownTimeout != 3*time.Second || cfg.CheckWorkers != 3 ||
 		cfg.SessionTTL != 12*time.Hour || !cfg.CookieSecure || cfg.Location.String() != "Europe/Bucharest" ||
-		!cfg.SeedDemo || cfg.DemoTargetURL != "http://demo:9000" || cfg.Retention != 14*24*time.Hour {
+		!cfg.SeedDemo || cfg.DemoTargetURL != "http://demo:9000" || cfg.Retention != 14*24*time.Hour ||
+		cfg.LogFormat != "json" {
 		t.Errorf("unexpected config: %+v", cfg)
 	}
 }
@@ -61,6 +63,7 @@ func TestLoadOverrides(t *testing.T) {
 func TestLoadInvalid(t *testing.T) {
 	cases := map[string]map[string]string{
 		"log level":        {"LOG_LEVEL": "verbose"},
+		"log format":       {"LOG_FORMAT": "xml"},
 		"shutdown timeout": {"SHUTDOWN_TIMEOUT": "soon"},
 		"negative timeout": {"SHUTDOWN_TIMEOUT": "-1s"},
 		"workers zero":     {"CHECK_WORKERS": "0"},

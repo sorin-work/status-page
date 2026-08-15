@@ -36,7 +36,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	logger := newLogger(cfg.LogLevel)
+	logger := newLogger(cfg.LogLevel, cfg.LogFormat)
 	slog.SetDefault(logger)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -184,7 +184,7 @@ func ensureAdmin(ctx context.Context, st *store.Store, cfg config.Config, logger
 	return nil
 }
 
-func newLogger(level string) *slog.Logger {
+func newLogger(level, format string) *slog.Logger {
 	var l slog.Level
 	switch level {
 	case "debug":
@@ -196,5 +196,9 @@ func newLogger(level string) *slog.Logger {
 	default:
 		l = slog.LevelInfo
 	}
-	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: l}))
+	opts := &slog.HandlerOptions{Level: l}
+	if format == "json" {
+		return slog.New(slog.NewJSONHandler(os.Stderr, opts))
+	}
+	return slog.New(slog.NewTextHandler(os.Stderr, opts))
 }
