@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
 
 func validHTTP() Monitor {
@@ -100,6 +101,21 @@ func TestValidateTCPAcceptsIPv6(t *testing.T) {
 	if err := m.Validate(); err != nil {
 		t.Errorf("IPv6 target rejected: %v", err)
 	}
+}
+
+func TestValidateNameCountsCharacters(t *testing.T) {
+	m := validHTTP()
+	// 66 characters, 122 bytes in UTF-8.
+	m.Name = "Платёжный шлюз — Франкфурт, основной кластер (резерв в Амстердаме)"
+	if err := m.Validate(); err != nil {
+		t.Errorf("%d character name rejected: %v", utf8.RuneCountInString(m.Name), err)
+	}
+	m.Name = strings.Repeat("ü", MaxNameLength)
+	if err := m.Validate(); err != nil {
+		t.Errorf("name of exactly %d characters rejected: %v", MaxNameLength, err)
+	}
+	m.Name = strings.Repeat("ü", MaxNameLength+1)
+	assertFieldError(t, m.Validate(), "name")
 }
 
 func TestNormalize(t *testing.T) {

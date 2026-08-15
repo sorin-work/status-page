@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Limits applied when validating monitors.
@@ -53,7 +54,7 @@ func (m *Monitor) Validate() error {
 	switch {
 	case m.Name == "":
 		errs["name"] = "is required"
-	case len(m.Name) > MaxNameLength:
+	case utf8.RuneCountInString(m.Name) > MaxNameLength:
 		errs["name"] = fmt.Sprintf("must be at most %d characters", MaxNameLength)
 	}
 
