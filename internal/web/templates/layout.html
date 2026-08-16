@@ -19,7 +19,7 @@
         <a href="/admin/webhooks"{{if eq .Nav "webhooks"}} class="active"{{end}}>Webhooks</a>
       </nav>
       <div class="user-menu">
-        <span>{{.User.Username}}</span>
+        <a href="/admin/account"{{if eq .Nav "account"}} class="active"{{end}}>{{.User.Username}}</a>
         <form method="post" action="/admin/logout" class="inline">
           <input type="hidden" name="csrf" value="{{.User.CSRFToken}}">
           <button type="submit" class="link">Log out</button>
