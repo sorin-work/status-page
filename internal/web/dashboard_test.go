@@ -32,6 +32,30 @@ func TestDashboardEmpty(t *testing.T) {
 	}
 }
 
+func TestDashboardFilters(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	ctx := context.Background()
+	api := addMonitor(t, st, "orders-api")
+	addMonitor(t, st, "storefront")
+	if err := st.SetMonitorStatus(ctx, api.ID, monitor.StatusDown); err != nil {
+		t.Fatal(err)
+	}
+	c, _ := login(t, srv)
+
+	body := getWith(t, srv, "/admin?q=ORDERS", c).Body.String()
+	if !strings.Contains(body, "orders-api") || strings.Contains(body, ">storefront<") {
+		t.Error("search did not filter by name")
+	}
+	body = getWith(t, srv, "/admin?status=down", c).Body.String()
+	if !strings.Contains(body, "orders-api") || strings.Contains(body, ">storefront<") {
+		t.Error("status filter did not apply")
+	}
+	if body := getWith(t, srv, "/admin?q=nothing", c).Body.String(); !strings.Contains(body, "No monitors match") {
+		t.Error("missing empty filter state")
+	}
+}
+
 func TestDashboardListsMonitorsWithUptime(t *testing.T) {
 	srv, st := newTestServer(t)
 	createAdmin(t, st)

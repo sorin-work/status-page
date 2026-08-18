@@ -4,8 +4,19 @@
   <a class="button" href="/admin/monitors/new">New monitor</a>
 </div>
 {{with .Data}}
+{{if .Total}}
+<form method="get" action="/admin" class="filters">
+  <input type="search" name="q" value="{{.Query}}" placeholder="Search by name or target" aria-label="Search">
+  <select name="status" aria-label="Status" onchange="this.form.submit()">
+    <option value="">All ({{.Total}})</option>
+    <option value="up"{{if eq .Filter "up"}} selected{{end}}>Up ({{.Up}})</option>
+    <option value="down"{{if eq .Filter "down"}} selected{{end}}>Down ({{.Down}})</option>
+    <option value="paused"{{if eq .Filter "paused"}} selected{{end}}>Paused</option>
+  </select>
+  <button type="submit" class="secondary">Filter</button>
+</form>
+{{end}}
 {{if .Rows}}
-<p class="muted">{{.Up}} up · {{.Down}} down · {{len .Rows}} total</p>
 <div class="table-wrap">
   <table>
     <thead>
@@ -38,6 +49,8 @@
     </tbody>
   </table>
 </div>
+{{else if .Total}}
+<div class="card empty">No monitors match. <a href="/admin">Clear the filter</a></div>
 {{else}}
 <div class="card empty">No monitors yet.</div>
 {{end}}

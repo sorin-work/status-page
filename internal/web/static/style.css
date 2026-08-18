@@ -177,6 +177,20 @@ th.num {
   margin: 0;
 }
 
+.filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filters input[type="search"] {
+  max-width: 320px;
+}
+
+.filters select {
+  max-width: 160px;
+}
+
 /* Stats */
 
 .stats {
