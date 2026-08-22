@@ -47,3 +47,18 @@ func TestRequestID(t *testing.T) {
 		t.Errorf("unsafe id accepted: %q", got)
 	}
 }
+
+func TestSecurityHeaders(t *testing.T) {
+	srv, _ := newTestServer(t)
+	admin := get(t, srv, "/admin/login")
+	if admin.Header().Get("X-Frame-Options") != "DENY" || admin.Header().Get("Cache-Control") != "no-store" {
+		t.Errorf("admin headers: %v", admin.Header())
+	}
+	public := get(t, srv, "/")
+	if public.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Error("nosniff missing")
+	}
+	if public.Header().Get("X-Frame-Options") != "" {
+		t.Error("the public page should stay embeddable")
+	}
+}
