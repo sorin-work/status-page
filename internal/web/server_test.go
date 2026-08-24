@@ -55,8 +55,12 @@ func TestStaticFiles(t *testing.T) {
 
 func TestUnknownPath(t *testing.T) {
 	srv, _ := newTestServer(t)
-	if rec := get(t, srv, "/nope"); rec.Code != http.StatusNotFound {
+	rec := get(t, srv, "/nope")
+	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "Page not found") {
 		t.Fatalf("got %d", rec.Code)
+	}
+	if rec := get(t, srv, "/api/nope"); rec.Code != http.StatusNotFound || !strings.Contains(rec.Header().Get("Content-Type"), "json") {
+		t.Errorf("api 404: %d %s", rec.Code, rec.Header().Get("Content-Type"))
 	}
 }
 

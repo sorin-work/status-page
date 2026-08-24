@@ -159,3 +159,12 @@ func nl2br(text string) template.HTML {
 	escaped := template.HTMLEscapeString(strings.ReplaceAll(text, "\r\n", "\n"))
 	return template.HTML(strings.ReplaceAll(escaped, "\n", "<br>"))
 }
+
+// notFound renders the 404 page.
+func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
+	s.render(w, r, http.StatusNotFound, "not_found", page{Title: "Page not found"})
+}

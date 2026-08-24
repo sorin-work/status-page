@@ -158,12 +158,12 @@ func pathID(r *http.Request) (int64, bool) {
 func (s *Server) loadMonitor(w http.ResponseWriter, r *http.Request) (monitor.Monitor, bool) {
 	id, ok := pathID(r)
 	if !ok {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return monitor.Monitor{}, false
 	}
 	m, err := s.store.GetMonitor(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return monitor.Monitor{}, false
 	}
 	if err != nil {

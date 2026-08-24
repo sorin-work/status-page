@@ -120,12 +120,12 @@ func (s *Server) handleCreateMaintenance(w http.ResponseWriter, r *http.Request)
 func (s *Server) handleEndMaintenance(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r)
 	if !ok {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return
 	}
 	err := s.store.EndMaintenance(r.Context(), id, s.now())
 	if errors.Is(err, store.ErrNotFound) {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return
 	}
 	if err != nil {
@@ -138,12 +138,12 @@ func (s *Server) handleEndMaintenance(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDeleteMaintenance(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r)
 	if !ok {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return
 	}
 	err := s.store.DeleteMaintenance(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return
 	}
 	if err != nil {

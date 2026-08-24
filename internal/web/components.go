@@ -60,12 +60,12 @@ func (s *Server) handleCreateComponent(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleUpdateComponent(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r)
 	if !ok {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return
 	}
 	c, err := s.store.GetComponent(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return
 	}
 	if err != nil {
@@ -91,12 +91,12 @@ func (s *Server) handleUpdateComponent(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDeleteComponent(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r)
 	if !ok {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return
 	}
 	err := s.store.DeleteComponent(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return
 	}
 	if err != nil {

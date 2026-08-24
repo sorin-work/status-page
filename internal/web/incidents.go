@@ -107,12 +107,12 @@ func (s *Server) handleCreateIncident(w http.ResponseWriter, r *http.Request) {
 func (s *Server) loadIncident(w http.ResponseWriter, r *http.Request) (incident.Incident, bool) {
 	id, ok := pathID(r)
 	if !ok {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return incident.Incident{}, false
 	}
 	inc, err := s.store.GetIncident(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return incident.Incident{}, false
 	}
 	if err != nil {

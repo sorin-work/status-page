@@ -88,12 +88,12 @@ func (s *Server) handleCreateWebhook(w http.ResponseWriter, r *http.Request) {
 func (s *Server) loadWebhook(w http.ResponseWriter, r *http.Request) (store.Webhook, bool) {
 	id, ok := pathID(r)
 	if !ok {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return store.Webhook{}, false
 	}
 	hook, err := s.store.GetWebhook(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return store.Webhook{}, false
 	}
 	if err != nil {
