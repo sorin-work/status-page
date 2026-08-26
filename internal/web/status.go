@@ -32,7 +32,7 @@ type statusPage struct {
 const pastIncidentLimit = 10
 
 func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
-	data, err := s.buildStatus(r.Context())
+	data, err := s.statusCache.get(r.Context(), s.buildStatus)
 	if err != nil {
 		s.serverError(w, r, err)
 		return

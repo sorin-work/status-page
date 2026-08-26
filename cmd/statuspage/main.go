@@ -87,6 +87,8 @@ func run() error {
 		Location:     cfg.Location,
 		APIToken:     cfg.APIToken,
 		Notifier:     dispatcher,
+
+		StatusCacheTTL: 5 * time.Second,
 	})
 	if err != nil {
 		return err

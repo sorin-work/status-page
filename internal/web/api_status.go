@@ -25,7 +25,7 @@ type apiMaintenance struct {
 
 // apiStatus is the public summary of the status page. It needs no token.
 func (s *Server) apiStatus(w http.ResponseWriter, r *http.Request) {
-	data, err := s.buildStatus(r.Context())
+	data, err := s.statusCache.get(r.Context(), s.buildStatus)
 	if err != nil {
 		s.apiServerError(w, r, err)
 		return

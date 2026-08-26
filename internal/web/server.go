@@ -26,6 +26,8 @@ type Options struct {
 	APIToken string
 	// Notifier sends webhook events. Optional.
 	Notifier Notifier
+	// StatusCacheTTL caches the public status data. Zero disables it.
+	StatusCacheTTL time.Duration
 }
 
 // Server is the HTTP handler of the application.
@@ -44,6 +46,7 @@ type Server struct {
 	apiToken     string
 	notifier     Notifier
 	logins       *loginLimiter
+	statusCache  *statusCache
 }
 
 // New builds a Server and registers its routes.
@@ -77,6 +80,7 @@ func New(opts Options) (*Server, error) {
 		notifier:     opts.Notifier,
 	}
 	s.logins = newLoginLimiter(5, 15*time.Minute, s.now)
+	s.statusCache = &statusCache{ttl: opts.StatusCacheTTL, now: s.now}
 	tmpl, err := loadTemplates(s.funcs())
 	if err != nil {
 		return nil, err
@@ -88,6 +92,10 @@ func New(opts Options) (*Server, error) {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		// Anything that may change data makes the next status page fresh.
+		defer s.statusCache.invalidate()
+	}
 	s.handler.ServeHTTP(w, r)
 }
 
