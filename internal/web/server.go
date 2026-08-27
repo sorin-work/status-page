@@ -113,6 +113,8 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/monitors/{id}", s.apiAuth(s.apiGetMonitor))
 	s.mux.Handle("PUT /api/monitors/{id}", s.apiAuth(s.apiUpdateMonitor))
 	s.mux.Handle("DELETE /api/monitors/{id}", s.apiAuth(s.apiDeleteMonitor))
+	s.mux.Handle("POST /api/monitors/{id}/pause", s.apiAuth(s.apiPauseMonitor))
+	s.mux.Handle("POST /api/monitors/{id}/resume", s.apiAuth(s.apiResumeMonitor))
 	s.mux.Handle("GET /api/monitors/{id}/checks", s.apiAuth(s.apiListChecks))
 	s.mux.Handle("GET /api/monitors/{id}/uptime", s.apiAuth(s.apiUptime))
 

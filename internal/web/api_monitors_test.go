@@ -171,3 +171,18 @@ func TestAPIUpdateAndDeleteMonitor(t *testing.T) {
 		t.Errorf("update deleted: %d", rec.Code)
 	}
 }
+
+func TestAPIPauseAndResume(t *testing.T) {
+	srv, st := newAPIServer(t)
+	m := addMonitor(t, st, "api")
+	path := "/api/monitors/" + itoa(m.ID)
+	if got := decode[apiMonitor](t, apiCall(t, srv, http.MethodPost, path+"/pause", nil)); !got.Paused {
+		t.Error("not paused")
+	}
+	if got := decode[apiMonitor](t, apiCall(t, srv, http.MethodPost, path+"/resume", nil)); got.Paused {
+		t.Error("not resumed")
+	}
+	if rec := apiCall(t, srv, http.MethodPost, "/api/monitors/404/pause", nil); rec.Code != http.StatusNotFound {
+		t.Errorf("missing monitor: %d", rec.Code)
+	}
+}

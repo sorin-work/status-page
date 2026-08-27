@@ -122,6 +122,11 @@ Replaces the editable fields, same body as `POST`.
 
 Deletes the monitor and its history. Answers `204`.
 
+### `POST /api/monitors/{id}/pause` and `POST /api/monitors/{id}/resume`
+
+Stops or restarts the checks of a monitor, for example around a deploy.
+Answers with the monitor.
+
 ### `GET /api/monitors/{id}/checks?limit=100&offset=0`
 
 Check history, newest first. `limit` is 1 to 1000.

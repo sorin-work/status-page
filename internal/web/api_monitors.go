@@ -200,3 +200,28 @@ func (s *Server) apiDeleteMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (s *Server) apiPauseMonitor(w http.ResponseWriter, r *http.Request) {
+	s.apiSetPaused(w, r, true)
+}
+
+func (s *Server) apiResumeMonitor(w http.ResponseWriter, r *http.Request) {
+	s.apiSetPaused(w, r, false)
+}
+
+func (s *Server) apiSetPaused(w http.ResponseWriter, r *http.Request, paused bool) {
+	m, ok := s.apiLoadMonitor(w, r)
+	if !ok {
+		return
+	}
+	if err := s.store.SetMonitorPaused(r.Context(), m.ID, paused); err != nil {
+		s.apiServerError(w, r, err)
+		return
+	}
+	m, err := s.store.GetMonitor(r.Context(), m.ID)
+	if err != nil {
+		s.apiServerError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toAPIMonitor(m))
+}
