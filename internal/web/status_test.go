@@ -52,6 +52,9 @@ func TestStatusPageActiveIncident(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := get(t, srv, "/").Body.String()
+	if !strings.Contains(body, "<title>Major outage · Acme Status</title>") {
+		t.Error("page title does not show the outage")
+	}
 	for _, want := range []string{"Card payments failing", "The card processor is returning errors.", "Major outage"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("status page is missing %q", want)

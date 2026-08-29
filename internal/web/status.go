@@ -37,7 +37,12 @@ func (s *Server) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	s.render(w, r, http.StatusOK, "status", page{Data: data})
+	// The tab title tells people the state without switching to it.
+	title := ""
+	if data.Overall != component.Operational && data.Overall != component.NoData {
+		title = data.Overall.Label()
+	}
+	s.render(w, r, http.StatusOK, "status", page{Title: title, Data: data})
 }
 
 // buildStatus gathers everything shown on the public status page.
