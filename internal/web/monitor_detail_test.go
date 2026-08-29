@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sorin-work/status-page/internal/incident"
 	"github.com/sorin-work/status-page/internal/monitor"
 )
 
@@ -63,6 +64,20 @@ func TestCheckHistoryLastPage(t *testing.T) {
 	// The oldest check (1ms) is on the last page.
 	if !strings.Contains(body, ">1ms<") {
 		t.Error("oldest check missing from the last page")
+	}
+}
+
+func TestMonitorDetailIncidents(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	m := addMonitor(t, st, "api")
+	if _, err := st.CreateIncident(context.Background(), incident.Incident{Title: "api is down", Status: incident.StatusInvestigating, Impact: incident.ImpactMajor, MonitorID: m.ID, Automatic: true}, "x"); err != nil {
+		t.Fatal(err)
+	}
+	c, _ := login(t, srv)
+	body := getWith(t, srv, "/admin/monitors/"+itoa(m.ID), c).Body.String()
+	if !strings.Contains(body, "Recent incidents") || !strings.Contains(body, "api is down") {
+		t.Error("incidents of the monitor are not listed")
 	}
 }
 

@@ -249,3 +249,9 @@ func (s *Store) CountResolvedIncidents(ctx context.Context) (int, error) {
 	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM incidents WHERE status = 'resolved'`).Scan(&n)
 	return n, err
 }
+
+// ListMonitorIncidents returns the latest incidents opened by a monitor.
+func (s *Store) ListMonitorIncidents(ctx context.Context, monitorID int64, limit int) ([]incident.Incident, error) {
+	return s.queryIncidents(ctx, `SELECT `+incidentColumns+` FROM incidents i
+		WHERE i.monitor_id = ? ORDER BY i.started_at DESC, i.id DESC LIMIT ?`, monitorID, limit)
+}

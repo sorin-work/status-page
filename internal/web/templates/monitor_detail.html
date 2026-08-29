@@ -42,6 +42,24 @@
 </div>
 {{end}}
 
+{{if .Data.Incidents}}
+<h2>Recent incidents</h2>
+<div class="table-wrap">
+  <table>
+    <tbody>
+      {{range .Data.Incidents}}
+      <tr>
+        <td><span class="badge {{.Status}}">{{.Status}}</span></td>
+        <td><a href="/admin/incidents/{{.ID}}">{{.Title}}</a></td>
+        <td class="muted">{{datetime .StartedAt}}</td>
+        <td class="num">{{duration (.Duration now)}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+
 <h2>Check history</h2>
 {{if .Data.Checks}}
 <div class="table-wrap">

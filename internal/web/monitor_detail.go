@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sorin-work/status-page/internal/incident"
 	"github.com/sorin-work/status-page/internal/monitor"
 	"github.com/sorin-work/status-page/internal/uptime"
 )
@@ -33,13 +34,14 @@ func pickChartRange(key string) chartRange {
 }
 
 type monitorDetail struct {
-	Monitor monitor.Monitor
-	Uptime  uptime.Summary
-	Checks  []monitor.Result
-	Pager   pager
-	Chart   latencyChart
-	Range   chartRange
-	Ranges  []chartRange
+	Monitor   monitor.Monitor
+	Uptime    uptime.Summary
+	Checks    []monitor.Result
+	Pager     pager
+	Chart     latencyChart
+	Range     chartRange
+	Ranges    []chartRange
+	Incidents []incident.Incident
 }
 
 func (s *Server) handleMonitorDetail(w http.ResponseWriter, r *http.Request) {
@@ -72,13 +74,19 @@ func (s *Server) handleMonitorDetail(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	incidents, err := s.store.ListMonitorIncidents(r.Context(), m.ID, 5)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	s.render(w, r, http.StatusOK, "monitor_detail", page{Title: m.Name, Nav: "monitors", Data: monitorDetail{
-		Monitor: m,
-		Uptime:  sum,
-		Checks:  checks,
-		Pager:   pg,
-		Chart:   buildLatencyChart(series, from, to),
-		Range:   cr,
-		Ranges:  chartRanges,
+		Incidents: incidents,
+		Monitor:   m,
+		Uptime:    sum,
+		Checks:    checks,
+		Pager:     pg,
+		Chart:     buildLatencyChart(series, from, to),
+		Range:     cr,
+		Ranges:    chartRanges,
 	}})
 }
