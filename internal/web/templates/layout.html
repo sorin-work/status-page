@@ -35,7 +35,7 @@
   <footer class="site-footer">
     <div class="inner muted small">
       <span>Updated {{datetime now}}</span>
-      {{if not .User}}<a href="/admin/login">Admin</a>{{end}}
+      {{if .User}}<span>status-page {{version}}</span>{{else}}<a href="/admin/login">Admin</a>{{end}}
     </div>
   </footer>
 </body>

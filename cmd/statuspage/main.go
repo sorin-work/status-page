@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -21,10 +22,17 @@ import (
 	"github.com/sorin-work/status-page/internal/scheduler"
 	"github.com/sorin-work/status-page/internal/seed"
 	"github.com/sorin-work/status-page/internal/store"
+	"github.com/sorin-work/status-page/internal/version"
 	"github.com/sorin-work/status-page/internal/web"
 )
 
 func main() {
+	showVersion := flag.Bool("version", false, "print the version and exit")
+	flag.Parse()
+	if *showVersion {
+		fmt.Println("statuspage", version.Version)
+		return
+	}
 	if err := run(); err != nil {
 		slog.Error("fatal", "err", err)
 		os.Exit(1)
@@ -105,7 +113,7 @@ func run() error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("listening", "addr", cfg.Addr)
+		logger.Info("listening", "addr", cfg.Addr, "version", version.Version)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 		}

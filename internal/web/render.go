@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/sorin-work/status-page/internal/store"
+	"github.com/sorin-work/status-page/internal/version"
 )
 
 //go:embed templates/*.html
@@ -76,6 +77,7 @@ func (s *Server) funcs() template.FuncMap {
 	return template.FuncMap{
 		"duration": formatDuration,
 		"now":      s.now,
+		"version":  func() string { return version.Version },
 		"nl2br":    nl2br,
 		"ago": func(t time.Time) string {
 			return formatAgo(s.now().Sub(t))

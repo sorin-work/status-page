@@ -6,7 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 ARG VERSION=dev
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/statuspage ./cmd/statuspage \
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/sorin-work/status-page/internal/version.Version=${VERSION}" -o /out/statuspage ./cmd/statuspage \
  && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/demotarget ./cmd/demotarget
 
 FROM alpine:3.22
