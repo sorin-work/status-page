@@ -232,3 +232,26 @@ func (s *Server) setPaused(w http.ResponseWriter, r *http.Request, paused bool) 
 	}
 	http.Redirect(w, r, "/admin/monitors/"+strconv.FormatInt(m.ID, 10), http.StatusSeeOther)
 }
+
+// handleDuplicateMonitor opens the new monitor form prefilled with the
+// settings of an existing monitor.
+func (s *Server) handleDuplicateMonitor(w http.ResponseWriter, r *http.Request) {
+	m, ok := s.loadMonitor(w, r)
+	if !ok {
+		return
+	}
+	f := formFromMonitor(m)
+	f.ID = 0
+	f.Name = copyName(m.Name)
+	s.renderMonitorForm(w, r, http.StatusOK, "New monitor", f)
+}
+
+// copyName appends " (copy)" while staying within the name limit.
+func copyName(name string) string {
+	const suffix = " (copy)"
+	runes := []rune(name)
+	if room := monitor.MaxNameLength - len([]rune(suffix)); len(runes) > room {
+		runes = runes[:room]
+	}
+	return string(runes) + suffix
+}

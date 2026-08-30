@@ -10,6 +10,7 @@
       <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
       <button type="submit" class="secondary">{{if $m.Paused}}Resume{{else}}Pause{{end}}</button>
     </form>
+    <a class="button secondary" href="/admin/monitors/{{$m.ID}}/duplicate">Duplicate</a>
     <a class="button secondary" href="/admin/monitors/{{$m.ID}}/edit">Edit</a>
   </div>
 </div>

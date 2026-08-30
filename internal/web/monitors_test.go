@@ -165,6 +165,20 @@ func TestPauseAndResumeMonitor(t *testing.T) {
 	}
 }
 
+func TestDuplicateMonitor(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	m := addMonitor(t, st, "checkout")
+	c, _ := login(t, srv)
+	body := getWith(t, srv, "/admin/monitors/"+itoa(m.ID)+"/duplicate", c).Body.String()
+	if !strings.Contains(body, `value="checkout (copy)"`) || !strings.Contains(body, `action="/admin/monitors"`) {
+		t.Error("form is not a prefilled new monitor form")
+	}
+	if got := copyName(strings.Repeat("ä", 100)); len([]rune(got)) != 100 || !strings.HasSuffix(got, " (copy)") {
+		t.Errorf("copyName = %q", got)
+	}
+}
+
 func TestDeleteMonitor(t *testing.T) {
 	srv, st := newTestServer(t)
 	createAdmin(t, st)

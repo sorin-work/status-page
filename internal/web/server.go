@@ -131,6 +131,7 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /admin/monitors", s.admin(s.handleCreateMonitor))
 	s.mux.Handle("GET /admin/monitors/{id}", s.admin(s.handleMonitorDetail))
 	s.mux.Handle("GET /admin/monitors/{id}/edit", s.admin(s.handleEditMonitor))
+	s.mux.Handle("GET /admin/monitors/{id}/duplicate", s.admin(s.handleDuplicateMonitor))
 	s.mux.Handle("GET /admin/monitors/{id}/checks.csv", s.admin(s.handleExportChecks))
 	s.mux.Handle("POST /admin/monitors/{id}", s.admin(s.handleUpdateMonitor))
 	s.mux.Handle("POST /admin/monitors/{id}/delete", s.admin(s.handleDeleteMonitor))
