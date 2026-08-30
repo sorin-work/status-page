@@ -81,6 +81,30 @@ func TestMonitorDetailIncidents(t *testing.T) {
 	}
 }
 
+func TestExportChecksCSV(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	m := addMonitor(t, st, "Public API")
+	at := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
+	if err := st.RecordChecks(context.Background(), []monitor.Result{
+		{MonitorID: m.ID, CheckedAt: at, Up: true, Latency: 42 * time.Millisecond, StatusCode: 200},
+		{MonitorID: m.ID, CheckedAt: at.Add(time.Minute), Error: "=HYPERLINK(\"x\")"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	c, _ := login(t, srv)
+	rec := getWith(t, srv, "/admin/monitors/"+itoa(m.ID)+"/checks.csv", c)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Header().Get("Content-Disposition"), `filename="public-api-checks-`) {
+		t.Fatalf("got %d %v", rec.Code, rec.Header())
+	}
+	want := "checked_at,up,latency_ms,status_code,error\n" +
+		"2026-08-30T12:01:00Z,false,0,0,\"'=HYPERLINK(\"\"x\"\")\"\n" +
+		"2026-08-30T12:00:00Z,true,42,200,\n"
+	if rec.Body.String() != want {
+		t.Errorf("csv =\n%s", rec.Body.String())
+	}
+}
+
 func TestMonitorDetailWithoutChecks(t *testing.T) {
 	srv, st := newTestServer(t)
 	createAdmin(t, st)

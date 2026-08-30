@@ -60,7 +60,10 @@
 </div>
 {{end}}
 
-<h2>Check history</h2>
+<div class="page-head section-head">
+  <h2>Check history</h2>
+  <a href="/admin/monitors/{{$m.ID}}/checks.csv" class="small">Download CSV</a>
+</div>
 {{if .Data.Checks}}
 <div class="table-wrap">
   <table>
