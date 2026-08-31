@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/sorin-work/status-page/internal/monitor"
 )
@@ -86,6 +87,20 @@ func TestRecordCheckTruncatesLongErrors(t *testing.T) {
 	}
 	if len(checks[0].Error) != MaxErrorLength {
 		t.Errorf("error length = %d", len(checks[0].Error))
+	}
+}
+
+func TestRecordCheckTruncatesOnCharacterBoundary(t *testing.T) {
+	s := newTestStore(t)
+	m := createMonitor(t, s, "api")
+	// 499 ASCII bytes followed by a two byte character.
+	msg := strings.Repeat("x", MaxErrorLength-1) + "ü and more"
+	if err := s.RecordCheck(context.Background(), monitor.Result{MonitorID: m.ID, CheckedAt: time.Now(), Error: msg}); err != nil {
+		t.Fatal(err)
+	}
+	checks, _ := s.ListChecks(context.Background(), m.ID, 1, 0)
+	if got := checks[0].Error; !utf8.ValidString(got) || len(got) != MaxErrorLength-1 {
+		t.Errorf("stored %d bytes, valid UTF-8: %v", len(got), utf8.ValidString(got))
 	}
 }
 

@@ -3,12 +3,25 @@ package store
 import (
 	"context"
 	"time"
+	"unicode/utf8"
 
 	"github.com/sorin-work/status-page/internal/monitor"
 )
 
 // MaxErrorLength caps the error message stored with a check.
 const MaxErrorLength = 500
+
+// truncate shortens s to at most n bytes without cutting a UTF-8
+// character in half.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n]
+}
 
 // scanCheck reads a row of monitor_id, checked_at, up, latency_ms,
 // status_code, error.
@@ -59,10 +72,7 @@ func (s *Store) RecordChecks(ctx context.Context, results []monitor.Result) erro
 	defer upsertDay.Close()
 
 	for _, r := range results {
-		errMsg := r.Error
-		if len(errMsg) > MaxErrorLength {
-			errMsg = errMsg[:MaxErrorLength]
-		}
+		errMsg := truncate(r.Error, MaxErrorLength)
 		if _, err := insertCheck.ExecContext(ctx, r.MonitorID, r.CheckedAt.Unix(), r.Up,
 			r.Latency.Milliseconds(), r.StatusCode, errMsg); err != nil {
 			return err
