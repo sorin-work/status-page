@@ -10,6 +10,22 @@ import (
 // MaxErrorLength caps the error message stored with a check.
 const MaxErrorLength = 500
 
+// scanCheck reads a row of monitor_id, checked_at, up, latency_ms,
+// status_code, error.
+func scanCheck(r rowScanner) (monitor.Result, error) {
+	var (
+		res       monitor.Result
+		checkedAt int64
+		latencyMS int64
+	)
+	if err := r.Scan(&res.MonitorID, &checkedAt, &res.Up, &latencyMS, &res.StatusCode, &res.Error); err != nil {
+		return monitor.Result{}, err
+	}
+	res.CheckedAt = time.Unix(checkedAt, 0).UTC()
+	res.Latency = time.Duration(latencyMS) * time.Millisecond
+	return res, nil
+}
+
 // RecordCheck stores the result of a check.
 func (s *Store) RecordCheck(ctx context.Context, r monitor.Result) error {
 	return s.RecordChecks(ctx, []monitor.Result{r})
@@ -74,16 +90,10 @@ func (s *Store) ListChecks(ctx context.Context, monitorID int64, limit, offset i
 	defer rows.Close()
 	var out []monitor.Result
 	for rows.Next() {
-		var (
-			r         monitor.Result
-			checkedAt int64
-			latencyMS int64
-		)
-		if err := rows.Scan(&r.MonitorID, &checkedAt, &r.Up, &latencyMS, &r.StatusCode, &r.Error); err != nil {
+		r, err := scanCheck(rows)
+		if err != nil {
 			return nil, err
 		}
-		r.CheckedAt = time.Unix(checkedAt, 0).UTC()
-		r.Latency = time.Duration(latencyMS) * time.Millisecond
 		out = append(out, r)
 	}
 	return out, rows.Err()
@@ -115,16 +125,10 @@ func (s *Store) LatestChecks(ctx context.Context) (map[int64]monitor.Result, err
 	defer rows.Close()
 	out := map[int64]monitor.Result{}
 	for rows.Next() {
-		var (
-			r         monitor.Result
-			checkedAt int64
-			latencyMS int64
-		)
-		if err := rows.Scan(&r.MonitorID, &checkedAt, &r.Up, &latencyMS, &r.StatusCode, &r.Error); err != nil {
+		r, err := scanCheck(rows)
+		if err != nil {
 			return nil, err
 		}
-		r.CheckedAt = time.Unix(checkedAt, 0).UTC()
-		r.Latency = time.Duration(latencyMS) * time.Millisecond
 		out[r.MonitorID] = r
 	}
 	return out, rows.Err()
