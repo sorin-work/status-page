@@ -255,3 +255,16 @@ func (s *Store) ListMonitorIncidents(ctx context.Context, monitorID int64, limit
 	return s.queryIncidents(ctx, `SELECT `+incidentColumns+` FROM incidents i
 		WHERE i.monitor_id = ? ORDER BY i.started_at DESC, i.id DESC LIMIT ?`, monitorID, limit)
 }
+
+// LastAutomaticIncident returns the newest automatic incident of a
+// monitor, resolved or not.
+func (s *Store) LastAutomaticIncident(ctx context.Context, monitorID int64) (incident.Incident, error) {
+	row := s.db.QueryRowContext(ctx, `SELECT `+incidentColumns+` FROM incidents i
+		WHERE i.monitor_id = ? AND i.automatic = 1
+		ORDER BY i.started_at DESC, i.id DESC LIMIT 1`, monitorID)
+	inc, err := scanIncident(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return incident.Incident{}, ErrNotFound
+	}
+	return inc, err
+}

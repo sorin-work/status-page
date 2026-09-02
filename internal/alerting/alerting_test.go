@@ -94,6 +94,34 @@ func TestRecoveryResolvesIncident(t *testing.T) {
 	}
 }
 
+func TestFlappingReopensIncident(t *testing.T) {
+	mgr, st, m := setup(t)
+	ctx := context.Background()
+	at := time.Date(2026, 9, 2, 20, 0, 0, 0, time.UTC)
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusUp, monitor.StatusDown, at, "502"))
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusDown, monitor.StatusUp, at.Add(5*time.Minute), ""))
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusUp, monitor.StatusDown, at.Add(8*time.Minute), "502"))
+
+	if n, _ := st.CountIncidents(ctx); n != 1 {
+		t.Fatalf("%d incidents, want the first one reopened", n)
+	}
+	open, err := st.OpenIncidentForMonitor(ctx, m.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	full, _ := st.GetIncident(ctx, open.ID)
+	if !full.ResolvedAt.IsZero() || len(full.Updates) != 3 || full.Updates[0].Message != "The problem is back. Checks are failing: 502." {
+		t.Errorf("reopened incident = %+v", full)
+	}
+
+	// Much later a new failure is a new incident.
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusDown, monitor.StatusUp, at.Add(10*time.Minute), ""))
+	mgr.HandleTransition(ctx, transition(m, monitor.StatusUp, monitor.StatusDown, at.Add(2*time.Hour), "502"))
+	if n, _ := st.CountIncidents(ctx); n != 2 {
+		t.Errorf("%d incidents, want 2", n)
+	}
+}
+
 func TestRecoveryWithoutIncident(t *testing.T) {
 	mgr, st, m := setup(t)
 	ctx := context.Background()
