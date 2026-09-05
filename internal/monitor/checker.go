@@ -62,8 +62,14 @@ func (c *NetChecker) checkHTTP(ctx context.Context, m Monitor) Result {
 	}
 	req.Header.Set("User-Agent", c.UserAgent)
 
+	client := c.Client
+	if m.NoRedirects {
+		noFollow := *c.Client
+		noFollow.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		client = &noFollow
+	}
 	start := time.Now()
-	resp, err := c.Client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		res.Latency = time.Since(start)
 		res.Error = describeError(err, m.Timeout)

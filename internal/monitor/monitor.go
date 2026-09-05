@@ -41,6 +41,9 @@ type Monitor struct {
 	ExpectedStatus int
 	// Keyword, when set, must appear in the HTTP response body.
 	Keyword string
+	// NoRedirects makes HTTP checks look at the first response instead
+	// of following redirects, e.g. to check that a 301 is in place.
+	NoRedirects bool
 	// Retries is how many extra failed checks are tolerated before the
 	// monitor is marked down.
 	Retries int

@@ -102,11 +102,12 @@ func TestUpdateMonitor(t *testing.T) {
 	m.Name = "new"
 	m.Interval = 5 * time.Minute
 	m.Keyword = ""
+	m.NoRedirects = true
 	updated, err := s.UpdateMonitor(ctx, m)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Name != "new" || updated.Interval != 5*time.Minute || updated.Keyword != "" {
+	if updated.Name != "new" || updated.Interval != 5*time.Minute || updated.Keyword != "" || !updated.NoRedirects {
 		t.Errorf("update not saved: %+v", updated)
 	}
 

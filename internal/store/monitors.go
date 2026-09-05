@@ -10,7 +10,8 @@ import (
 )
 
 const monitorColumns = `id, name, type, target, interval_seconds, timeout_seconds,
-	expected_status, keyword, retries, paused, status, created_at, updated_at, COALESCE(component_id, 0)`
+	expected_status, keyword, retries, paused, status, created_at, updated_at, COALESCE(component_id, 0),
+	follow_redirects`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -22,9 +23,11 @@ func scanMonitor(r rowScanner) (monitor.Monitor, error) {
 		typ, status       string
 		interval, timeout int64
 		created, updated  int64
+		follow            bool
 	)
 	err := r.Scan(&m.ID, &m.Name, &typ, &m.Target, &interval, &timeout,
-		&m.ExpectedStatus, &m.Keyword, &m.Retries, &m.Paused, &status, &created, &updated, &m.ComponentID)
+		&m.ExpectedStatus, &m.Keyword, &m.Retries, &m.Paused, &status, &created, &updated, &m.ComponentID, &follow)
+	m.NoRedirects = !follow
 	if err != nil {
 		return monitor.Monitor{}, err
 	}
@@ -45,10 +48,10 @@ func (s *Store) CreateMonitor(ctx context.Context, m monitor.Monitor) (monitor.M
 		m.Status = monitor.StatusUnknown
 	}
 	res, err := s.db.ExecContext(ctx, `INSERT INTO monitors
-		(name, type, target, interval_seconds, timeout_seconds, expected_status, keyword, retries, paused, status, created_at, updated_at, component_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		(name, type, target, interval_seconds, timeout_seconds, expected_status, keyword, retries, paused, status, created_at, updated_at, component_id, follow_redirects)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		m.Name, string(m.Type), m.Target, int64(m.Interval/time.Second), int64(m.Timeout/time.Second),
-		m.ExpectedStatus, m.Keyword, m.Retries, m.Paused, string(m.Status), now.Unix(), now.Unix(), nullableID(m.ComponentID))
+		m.ExpectedStatus, m.Keyword, m.Retries, m.Paused, string(m.Status), now.Unix(), now.Unix(), nullableID(m.ComponentID), !m.NoRedirects)
 	if err != nil {
 		return monitor.Monitor{}, err
 	}
@@ -98,10 +101,10 @@ func (s *Store) UpdateMonitor(ctx context.Context, m monitor.Monitor) (monitor.M
 	now := s.now().UTC().Truncate(time.Second)
 	res, err := s.db.ExecContext(ctx, `UPDATE monitors SET
 		name = ?, type = ?, target = ?, interval_seconds = ?, timeout_seconds = ?,
-		expected_status = ?, keyword = ?, retries = ?, paused = ?, updated_at = ?, component_id = ?
+		expected_status = ?, keyword = ?, retries = ?, paused = ?, updated_at = ?, component_id = ?, follow_redirects = ?
 		WHERE id = ?`,
 		m.Name, string(m.Type), m.Target, int64(m.Interval/time.Second), int64(m.Timeout/time.Second),
-		m.ExpectedStatus, m.Keyword, m.Retries, m.Paused, now.Unix(), nullableID(m.ComponentID), m.ID)
+		m.ExpectedStatus, m.Keyword, m.Retries, m.Paused, now.Unix(), nullableID(m.ComponentID), !m.NoRedirects, m.ID)
 	if err != nil {
 		return monitor.Monitor{}, err
 	}

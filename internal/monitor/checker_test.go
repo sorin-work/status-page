@@ -64,6 +64,30 @@ func TestHTTPCheckStatus(t *testing.T) {
 	}
 }
 
+func TestHTTPCheckRedirects(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/old" {
+			http.Redirect(w, r, "/new", http.StatusMovedPermanently)
+			return
+		}
+		_, _ = w.Write([]byte("new page"))
+	}))
+	defer srv.Close()
+
+	m := httpMonitor(srv.URL + "/old")
+	m.ExpectedStatus = http.StatusOK
+	m.Keyword = "new page"
+	if res := NewChecker().Check(context.Background(), m); !res.Up {
+		t.Errorf("redirect not followed: %+v", res)
+	}
+	m.NoRedirects = true
+	m.ExpectedStatus = http.StatusMovedPermanently
+	m.Keyword = ""
+	if res := NewChecker().Check(context.Background(), m); !res.Up || res.StatusCode != http.StatusMovedPermanently {
+		t.Errorf("redirect followed although disabled: %+v", res)
+	}
+}
+
 func TestHTTPCheckKeyword(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))

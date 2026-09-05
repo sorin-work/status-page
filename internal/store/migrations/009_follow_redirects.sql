@@ -1,0 +1,1 @@
+ALTER TABLE monitors ADD COLUMN follow_redirects INTEGER NOT NULL DEFAULT 1;
