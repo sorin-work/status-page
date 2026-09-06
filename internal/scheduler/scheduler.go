@@ -81,6 +81,12 @@ func New(store Store, checker monitor.Checker, workers int, logger *slog.Logger)
 	}
 }
 
+// SetClock replaces the clock, for tests that drive the scheduler with
+// RunDue instead of Run.
+func (s *Scheduler) SetClock(now func() time.Time) {
+	s.now = now
+}
+
 // Run checks for due monitors every Tick until ctx is cancelled.
 func (s *Scheduler) Run(ctx context.Context) {
 	t := time.NewTicker(s.Tick)
