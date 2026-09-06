@@ -47,10 +47,7 @@ func (s *Server) apiStatus(w http.ResponseWriter, r *http.Request) {
 	windows := make([]apiMaintenance, 0, len(data.Maintenance))
 	now := s.now()
 	for _, m := range data.Maintenance {
-		windows = append(windows, apiMaintenance{
-			ID: m.ID, Title: m.Title, Description: m.Description, ComponentID: optionalID(m.ComponentID),
-			StartsAt: m.StartsAt, EndsAt: m.EndsAt, Active: m.Active(now),
-		})
+		windows = append(windows, s.toAPIMaintenance(m))
 	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	writeJSON(w, http.StatusOK, map[string]any{

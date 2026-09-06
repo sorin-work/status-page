@@ -202,3 +202,36 @@ Impacts are `none`, `minor`, `major` and `critical`.
 
 Adds a timeline entry and moves the incident to its status. Resolving sets
 `resolved_at`; posting a non-resolved status reopens the incident.
+
+## Components
+
+### `GET /api/components`
+
+```json
+{ "components": [ { "id": 1, "name": "Website", "description": "Storefront and marketing pages", "position": 1 } ] }
+```
+
+## Maintenance
+
+### `GET /api/maintenance`
+
+Windows that are running or have not started yet, soonest first.
+
+### `POST /api/maintenance`
+
+```json
+{
+  "title": "Database upgrade",
+  "description": "Checkout may be read-only for a few minutes.",
+  "component_id": 5,
+  "starts_at": "2026-09-10T02:00:00Z",
+  "ends_at": "2026-09-10T02:30:00Z"
+}
+```
+
+`component_id` is optional; without it the window covers every component.
+Windows can be at most 7 days long and must not be over already.
+
+### `DELETE /api/maintenance/{id}`
+
+Removes a window. Answers `204`.
