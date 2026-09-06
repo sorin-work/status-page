@@ -59,7 +59,11 @@
       {{with index $f.Errors "keyword"}}<div class="error">Keyword {{.}}</div>{{end}}
     </div>
   </div>
-  <p class="hint muted small">Expected status and keyword only apply to HTTP monitors.</p>
+  <div class="field">
+    <label><input type="checkbox" name="no_redirects"{{if $f.NoRedirects}} checked{{end}}> Don't follow redirects</label>
+    <div class="hint">Check the first response as is, for example to make sure a 301 is in place.</div>
+  </div>
+  <p class="hint muted small">Expected status, keyword and redirects only apply to HTTP monitors.</p>
 
   <div class="field">
     <label for="component_id">Status page component</label>

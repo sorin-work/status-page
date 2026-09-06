@@ -18,6 +18,7 @@ type apiMonitor struct {
 	TimeoutSeconds  int       `json:"timeout_seconds"`
 	ExpectedStatus  int       `json:"expected_status"`
 	Keyword         string    `json:"keyword"`
+	FollowRedirects bool      `json:"follow_redirects"`
 	Retries         int       `json:"retries"`
 	Paused          bool      `json:"paused"`
 	Status          string    `json:"status"`
@@ -36,6 +37,7 @@ func toAPIMonitor(m monitor.Monitor) apiMonitor {
 		TimeoutSeconds:  int(m.Timeout / time.Second),
 		ExpectedStatus:  m.ExpectedStatus,
 		Keyword:         m.Keyword,
+		FollowRedirects: !m.NoRedirects,
 		Retries:         m.Retries,
 		Paused:          m.Paused,
 		Status:          string(m.Status),
@@ -97,6 +99,7 @@ type apiMonitorInput struct {
 	TimeoutSeconds  int    `json:"timeout_seconds"`
 	ExpectedStatus  int    `json:"expected_status"`
 	Keyword         string `json:"keyword"`
+	FollowRedirects *bool  `json:"follow_redirects"`
 	Retries         int    `json:"retries"`
 	Paused          bool   `json:"paused"`
 	ComponentID     *int64 `json:"component_id"`
@@ -124,6 +127,7 @@ func (s *Server) toMonitor(w http.ResponseWriter, r *http.Request, in apiMonitor
 		Keyword:        in.Keyword,
 		Retries:        in.Retries,
 		Paused:         in.Paused,
+		NoRedirects:    in.FollowRedirects != nil && !*in.FollowRedirects,
 	}
 	m.Normalize()
 	fields := map[string]string{}

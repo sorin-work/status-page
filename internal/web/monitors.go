@@ -24,6 +24,7 @@ type monitorForm struct {
 	Keyword        string
 	Retries        string
 	Paused         bool
+	NoRedirects    bool
 	ComponentID    int64
 	Errors         map[string]string
 	Components     []store.Component
@@ -40,6 +41,7 @@ func formFromMonitor(m monitor.Monitor) monitorForm {
 		Keyword:     m.Keyword,
 		Retries:     strconv.Itoa(m.Retries),
 		Paused:      m.Paused,
+		NoRedirects: m.NoRedirects,
 		ComponentID: m.ComponentID,
 	}
 	if m.ExpectedStatus != 0 {
@@ -69,6 +71,7 @@ func parseMonitorForm(r *http.Request) (monitor.Monitor, monitorForm, bool) {
 		Keyword:        r.PostFormValue("keyword"),
 		Retries:        strings.TrimSpace(r.PostFormValue("retries")),
 		Paused:         r.PostFormValue("paused") == "on",
+		NoRedirects:    r.PostFormValue("no_redirects") == "on",
 		Errors:         map[string]string{},
 	}
 	f.ComponentID, _ = strconv.ParseInt(r.PostFormValue("component_id"), 10, 64)
@@ -78,6 +81,7 @@ func parseMonitorForm(r *http.Request) (monitor.Monitor, monitorForm, bool) {
 		Target:      f.Target,
 		Keyword:     f.Keyword,
 		Paused:      f.Paused,
+		NoRedirects: f.NoRedirects && f.Type == string(monitor.TypeHTTP),
 		ComponentID: f.ComponentID,
 	}
 	number := func(field, value string, allowEmpty bool) int {

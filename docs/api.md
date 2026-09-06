@@ -80,6 +80,7 @@ Component and overall states are `operational`, `maintenance`,
       "timeout_seconds": 10,
       "expected_status": 0,
       "keyword": "Acme Shop",
+      "follow_redirects": true,
       "retries": 1,
       "paused": false,
       "status": "up",
@@ -108,6 +109,7 @@ Creates a monitor. Only `name` and `target` are required.
 | `timeout_seconds`  | 10      | 1 to 60 seconds, shorter than the interval         |
 | `expected_status`  | 0       | 0 accepts any 2xx/3xx; HTTP only                   |
 | `keyword`          | `""`    | Text the body must contain; HTTP only              |
+| `follow_redirects` | true    | false checks the first response; HTTP only         |
 | `retries`          | 0       | Extra failed checks before the monitor goes down   |
 | `paused`           | false   |                                                    |
 | `component_id`     | null    | Shows the monitor on the status page               |

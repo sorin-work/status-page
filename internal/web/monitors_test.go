@@ -121,12 +121,13 @@ func TestEditMonitor(t *testing.T) {
 
 	form := monitorValues(csrf)
 	form.Set("name", "Website")
+	form.Set("no_redirects", "on")
 	rec = postForm(t, srv, "/admin/monitors/"+itoa(m.ID), form, c)
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("update: %d", rec.Code)
 	}
 	got, _ := st.GetMonitor(context.Background(), m.ID)
-	if got.Name != "Website" || got.Interval != 30*time.Second {
+	if got.Name != "Website" || got.Interval != 30*time.Second || !got.NoRedirects {
 		t.Errorf("not updated: %+v", got)
 	}
 }

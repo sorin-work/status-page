@@ -120,7 +120,7 @@ func TestAPICreateMonitor(t *testing.T) {
 		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
 	}
 	m := decode[apiMonitor](t, rec)
-	if m.Type != "http" || m.IntervalSeconds != 60 || m.TimeoutSeconds != 10 || m.Status != "unknown" || m.ComponentID == nil || *m.ComponentID != comp.ID {
+	if m.Type != "http" || m.IntervalSeconds != 60 || m.TimeoutSeconds != 10 || m.Status != "unknown" || !m.FollowRedirects || m.ComponentID == nil || *m.ComponentID != comp.ID {
 		t.Errorf("defaults not applied: %+v", m)
 	}
 	if rec.Header().Get("Location") != "/api/monitors/"+itoa(m.ID) {
