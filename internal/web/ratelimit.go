@@ -3,6 +3,7 @@ package web
 import (
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -63,8 +64,19 @@ func (l *loginLimiter) Reset(key string) {
 	delete(l.failures, key)
 }
 
-// clientIP is the address used for rate limiting.
-func clientIP(r *http.Request) string {
+// clientIP is the address used for rate limiting and logs. The proxy
+// header is only honoured with TRUST_PROXY, otherwise anyone could pick a
+// new address for every login attempt.
+func (s *Server) clientIP(r *http.Request) string {
+	if s.trustProxy {
+		if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+			// The last entry was added by our proxy.
+			parts := strings.Split(fwd, ",")
+			if ip := strings.TrimSpace(parts[len(parts)-1]); net.ParseIP(ip) != nil {
+				return ip
+			}
+		}
+	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr

@@ -100,7 +100,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 	next := r.PostFormValue("next")
 
-	ip := clientIP(r)
+	ip := s.clientIP(r)
 	if blocked, wait := s.logins.Blocked(ip); blocked {
 		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())+1))
 		s.render(w, r, http.StatusTooManyRequests, "login", page{Title: "Log in", Data: loginData{

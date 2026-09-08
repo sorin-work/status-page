@@ -28,6 +28,8 @@ type Options struct {
 	Notifier Notifier
 	// StatusCacheTTL caches the public status data. Zero disables it.
 	StatusCacheTTL time.Duration
+	// TrustProxy reads the client address from X-Forwarded-For.
+	TrustProxy bool
 }
 
 // Server is the HTTP handler of the application.
@@ -47,6 +49,7 @@ type Server struct {
 	notifier     Notifier
 	logins       *loginLimiter
 	statusCache  *statusCache
+	trustProxy   bool
 }
 
 // New builds a Server and registers its routes.
@@ -78,6 +81,7 @@ func New(opts Options) (*Server, error) {
 		loc:          opts.Location,
 		apiToken:     opts.APIToken,
 		notifier:     opts.Notifier,
+		trustProxy:   opts.TrustProxy,
 	}
 	s.logins = newLoginLimiter(5, 15*time.Minute, s.now)
 	s.statusCache = &statusCache{ttl: opts.StatusCacheTTL, now: s.now}

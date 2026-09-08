@@ -48,6 +48,7 @@ func TestLoadOverrides(t *testing.T) {
 		"SEED_DEMO":        "1",
 		"DEMO_TARGET_URL":  "http://demo:9000",
 		"RETENTION_DAYS":   "14",
+		"TRUST_PROXY":      "true",
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -55,7 +56,7 @@ func TestLoadOverrides(t *testing.T) {
 	if cfg.Addr != "127.0.0.1:9000" || cfg.DatabasePath != "/tmp/x.db" || cfg.LogLevel != "debug" || cfg.ShutdownTimeout != 3*time.Second || cfg.CheckWorkers != 3 ||
 		cfg.SessionTTL != 12*time.Hour || !cfg.CookieSecure || cfg.Location.String() != "Europe/Bucharest" ||
 		!cfg.SeedDemo || cfg.DemoTargetURL != "http://demo:9000" || cfg.Retention != 14*24*time.Hour ||
-		cfg.LogFormat != "json" {
+		cfg.LogFormat != "json" || !cfg.TrustProxy {
 		t.Errorf("unexpected config: %+v", cfg)
 	}
 }

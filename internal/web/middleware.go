@@ -60,7 +60,7 @@ func (s *Server) logRequests(next http.Handler) http.Handler {
 			"status", rec.status,
 			"bytes", rec.bytes,
 			"duration", time.Since(start).Round(time.Microsecond),
-			"ip", clientIP(r),
+			"ip", s.clientIP(r),
 			"request_id", requestID(r),
 		)
 	})

@@ -97,6 +97,7 @@ func run() error {
 		Notifier:     dispatcher,
 
 		StatusCacheTTL: 5 * time.Second,
+		TrustProxy:     cfg.TrustProxy,
 	})
 	if err != nil {
 		return err

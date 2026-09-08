@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
@@ -48,5 +49,23 @@ func TestLoginIsRateLimited(t *testing.T) {
 	rec := postForm(t, srv, "/admin/login", url.Values{"username": {"admin"}, "password": {"demo-password"}})
 	if rec.Code != http.StatusTooManyRequests || rec.Header().Get("Retry-After") == "" {
 		t.Fatalf("got %d", rec.Code)
+	}
+}
+
+func TestClientIP(t *testing.T) {
+	srv, _ := newTestServer(t)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "10.0.0.2:51234"
+	req.Header.Set("X-Forwarded-For", "203.0.113.9, 198.51.100.7")
+	if got := srv.clientIP(req); got != "10.0.0.2" {
+		t.Errorf("without TRUST_PROXY: %q", got)
+	}
+	srv.trustProxy = true
+	if got := srv.clientIP(req); got != "198.51.100.7" {
+		t.Errorf("with TRUST_PROXY: %q", got)
+	}
+	req.Header.Set("X-Forwarded-For", "garbage")
+	if got := srv.clientIP(req); got != "10.0.0.2" {
+		t.Errorf("invalid header: %q", got)
 	}
 }

@@ -41,6 +41,9 @@ type Config struct {
 	// APIToken enables the JSON API for clients that send it as a bearer
 	// token.
 	APIToken string
+	// TrustProxy takes the client address from X-Forwarded-For, for
+	// deployments behind a reverse proxy.
+	TrustProxy bool
 	// Retention is how long raw checks are kept. Daily rollups are kept
 	// forever.
 	Retention time.Duration
@@ -135,6 +138,13 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg.APIToken = strings.TrimSpace(getenv("API_TOKEN"))
 	if cfg.APIToken != "" && len(cfg.APIToken) < 16 {
 		return Config{}, fmt.Errorf("API_TOKEN: must be at least 16 characters")
+	}
+	if v := getenv("TRUST_PROXY"); v != "" {
+		b, err := parseBool("TRUST_PROXY", v)
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.TrustProxy = b
 	}
 	if v := strings.TrimSpace(getenv("RETENTION_DAYS")); v != "" {
 		n, err := strconv.Atoi(v)
