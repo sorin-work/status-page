@@ -37,6 +37,7 @@
     <line x1="0" y1="{{.Height}}" x2="{{.Width}}" y2="{{.Height}}" class="axis"></line>
     {{range .Marks}}<line x1="{{.X}}" y1="0" x2="{{.X}}" y2="{{$.Data.Chart.Height}}" class="fail"><title>{{.Title}}</title></line>{{end}}
     <polyline points="{{.Points}}" class="line"></polyline>
+    {{with .Dot}}<circle cx="{{.X}}" cy="{{.Y}}" r="4" class="dot"></circle>{{end}}
   </svg>
   <div class="chart-axis muted small"><span>{{datetime .From}}</span><span>{{datetime .To}}</span></div>
   {{end}}

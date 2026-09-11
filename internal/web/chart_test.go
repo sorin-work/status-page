@@ -29,6 +29,14 @@ func TestBuildLatencyChart(t *testing.T) {
 	}
 }
 
+func TestBuildLatencyChartSinglePoint(t *testing.T) {
+	from := time.Date(2026, 9, 11, 0, 0, 0, 0, time.UTC)
+	c := buildLatencyChart([]store.LatencyPoint{{Start: from.Add(time.Hour), Avg: 80 * time.Millisecond, Checks: 1}}, from, from.Add(2*time.Hour))
+	if c.Empty || c.Dot == nil || c.Dot.X != 400 {
+		t.Errorf("a single check should still be visible: %+v", c)
+	}
+}
+
 func TestBuildLatencyChartEmpty(t *testing.T) {
 	now := time.Now()
 	c := buildLatencyChart(nil, now.Add(-time.Hour), now)

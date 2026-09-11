@@ -234,6 +234,10 @@ th.num {
   vector-effect: non-scaling-stroke;
 }
 
+.chart .dot {
+  fill: var(--accent);
+}
+
 .chart .axis {
   stroke: var(--border);
   vector-effect: non-scaling-stroke;

@@ -15,6 +15,10 @@ const (
 	chartPad    = 4
 )
 
+type chartPoint struct {
+	X, Y float64
+}
+
 // chartMark is a red tick for a bucket with failed checks.
 type chartMark struct {
 	X     float64
@@ -24,11 +28,14 @@ type chartMark struct {
 type latencyChart struct {
 	Width, Height int
 	Points        string
-	Marks         []chartMark
-	MaxLabel      string
-	AvgLabel      string
-	From, To      time.Time
-	Empty         bool
+	// Dot is set when there is a single point: a polyline with one
+	// coordinate draws nothing.
+	Dot      *chartPoint
+	Marks    []chartMark
+	MaxLabel string
+	AvgLabel string
+	From, To time.Time
+	Empty    bool
 }
 
 // buildLatencyChart scales the series into an SVG polyline covering the
@@ -66,7 +73,10 @@ func buildLatencyChart(points []store.LatencyPoint, from, to time.Time) latencyC
 	x := func(t time.Time) float64 {
 		return float64(t.Sub(from)) / float64(span) * chartWidth
 	}
-	var b strings.Builder
+	var (
+		b     strings.Builder
+		drawn []chartPoint
+	)
 	for _, p := range points {
 		if p.Failures > 0 {
 			c.Marks = append(c.Marks, chartMark{X: x(p.Start), Title: fmt.Sprintf("%d failed checks", p.Failures)})
@@ -76,7 +86,11 @@ func buildLatencyChart(points []store.LatencyPoint, from, to time.Time) latencyC
 		}
 		y := chartHeight - chartPad - float64(p.Avg)/float64(peak)*(chartHeight-2*chartPad)
 		fmt.Fprintf(&b, "%.1f,%.1f ", x(p.Start), y)
+		drawn = append(drawn, chartPoint{X: x(p.Start), Y: y})
 	}
 	c.Points = strings.TrimSpace(b.String())
+	if len(drawn) == 1 {
+		c.Dot = &drawn[0]
+	}
 	return c
 }
