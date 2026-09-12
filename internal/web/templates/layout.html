@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="inner">
       <a class="brand" href="/">{{.Site}}</a>
@@ -28,7 +29,7 @@
       {{end}}
     </div>
   </header>
-  <main class="container">
+  <main class="container" id="main">
     {{with .Flash}}<div class="alert success" role="status">{{.}}</div>{{end}}
     {{template "content" .}}
   </main>
