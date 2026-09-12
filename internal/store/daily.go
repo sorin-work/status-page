@@ -83,3 +83,26 @@ func (s *Store) ImportDailyStat(ctx context.Context, d DailyStat) error {
 		d.MonitorID, d.Day, d.Total, d.Up, d.LatencySumMS)
 	return err
 }
+
+// SumDailyStats adds up the rollups of every monitor between the two days
+// (inclusive).
+func (s *Store) SumDailyStats(ctx context.Context, from, to time.Time) (map[int64]Counts, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT monitor_id, SUM(up), SUM(total)
+		FROM daily_stats WHERE day >= ? AND day <= ? GROUP BY monitor_id`, Day(from), Day(to))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64]Counts{}
+	for rows.Next() {
+		var (
+			id int64
+			c  Counts
+		)
+		if err := rows.Scan(&id, &c.Up, &c.Total); err != nil {
+			return nil, err
+		}
+		out[id] = c
+	}
+	return out, rows.Err()
+}

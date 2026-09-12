@@ -87,6 +87,13 @@ func TestSummarize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	all, err := SummarizeAll(ctx, s, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if all[m.ID] != sum {
+		t.Errorf("SummarizeAll = %+v, Summarize = %+v", all[m.ID], sum)
+	}
 	if sum.Day != (Ratio{Up: 3, Total: 4}) {
 		t.Errorf("24h = %+v", sum.Day)
 	}

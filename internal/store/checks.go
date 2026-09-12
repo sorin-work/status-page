@@ -153,3 +153,31 @@ func (s *Store) PruneChecks(ctx context.Context, before time.Time) (int64, error
 	}
 	return res.RowsAffected()
 }
+
+// Counts is the number of checks and successful checks of a monitor.
+type Counts struct {
+	Up    int
+	Total int
+}
+
+// CountAllChecksSince is CountChecksSince for every monitor in one query.
+func (s *Store) CountAllChecksSince(ctx context.Context, since time.Time) (map[int64]Counts, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT monitor_id, COALESCE(SUM(up), 0), COUNT(*)
+		FROM checks WHERE checked_at >= ? GROUP BY monitor_id`, since.Unix())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64]Counts{}
+	for rows.Next() {
+		var (
+			id int64
+			c  Counts
+		)
+		if err := rows.Scan(&id, &c.Up, &c.Total); err != nil {
+			return nil, err
+		}
+		out[id] = c
+	}
+	return out, rows.Err()
+}

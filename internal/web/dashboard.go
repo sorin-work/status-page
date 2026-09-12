@@ -53,12 +53,16 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	summaries, err := uptime.SummarizeAll(r.Context(), s.store, s.now())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	data := dashboardData{
 		Total:  len(monitors),
 		Query:  strings.TrimSpace(r.URL.Query().Get("q")),
 		Filter: r.URL.Query().Get("status"),
 	}
-	now := s.now()
 	for _, m := range monitors {
 		switch {
 		case m.Paused:
@@ -70,12 +74,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		if !matches(m, data.Query, data.Filter) {
 			continue
 		}
-		sum, err := uptime.Summarize(r.Context(), s.store, m.ID, now)
-		if err != nil {
-			s.serverError(w, r, err)
-			return
-		}
-		row := dashboardRow{Monitor: m, Uptime: sum}
+		row := dashboardRow{Monitor: m, Uptime: summaries[m.ID]}
 		if last, ok := latest[m.ID]; ok {
 			row.Last = &last
 		}
