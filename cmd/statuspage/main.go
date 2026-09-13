@@ -64,8 +64,12 @@ func run() error {
 	}
 
 	if cfg.SeedDemo {
-		if _, err := seed.Demo(ctx, st, seed.Options{TargetURL: cfg.DemoTargetURL, Logger: logger}); err != nil {
+		seeded, err := seed.Demo(ctx, st, seed.Options{TargetURL: cfg.DemoTargetURL, Logger: logger})
+		if err != nil {
 			return fmt.Errorf("seed demo data: %w", err)
+		}
+		if seeded && cfg.AdminPassword != "" {
+			logger.Info("demo ready", "status_page", "http://localhost"+cfg.Addr+"/", "admin", "http://localhost"+cfg.Addr+"/admin", "username", cfg.AdminUsername)
 		}
 	}
 
