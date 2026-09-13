@@ -12,6 +12,7 @@ import (
 
 type componentsData struct {
 	Components []store.Component
+	Monitors   map[int64]int
 	Error      string
 	Name       string
 	Desc       string
@@ -24,6 +25,10 @@ func (s *Server) renderComponents(w http.ResponseWriter, r *http.Request, status
 		return
 	}
 	data.Components = list
+	if data.Monitors, err = s.store.CountComponentMonitors(r.Context()); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	s.render(w, r, status, "components", page{Title: "Components", Nav: "components", Data: data})
 }
 

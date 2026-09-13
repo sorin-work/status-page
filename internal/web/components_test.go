@@ -25,6 +25,14 @@ func TestComponentsCRUD(t *testing.T) {
 	if len(list) != 1 || list[0].Name != "API" {
 		t.Fatalf("components = %+v", list)
 	}
+	m := addMonitor(t, st, "api")
+	m.ComponentID = list[0].ID
+	if _, err := st.UpdateMonitor(ctx, m); err != nil {
+		t.Fatal(err)
+	}
+	if counts, _ := st.CountComponentMonitors(ctx); counts[list[0].ID] != 1 {
+		t.Errorf("counts = %v", counts)
+	}
 	id := itoa(list[0].ID)
 
 	rec = postForm(t, srv, "/admin/components/"+id, url.Values{"csrf": {csrf}, "name": {"Public API"}, "description": {""}, "position": {"5"}}, c)

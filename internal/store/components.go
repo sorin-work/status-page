@@ -93,3 +93,23 @@ func (s *Store) ListComponents(ctx context.Context) ([]Component, error) {
 	}
 	return out, rows.Err()
 }
+
+// CountComponentMonitors returns how many monitors each component has.
+func (s *Store) CountComponentMonitors(ctx context.Context) (map[int64]int, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT component_id, COUNT(*) FROM monitors
+		WHERE component_id IS NOT NULL GROUP BY component_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64]int{}
+	for rows.Next() {
+		var id int64
+		var n int
+		if err := rows.Scan(&id, &n); err != nil {
+			return nil, err
+		}
+		out[id] = n
+	}
+	return out, rows.Err()
+}

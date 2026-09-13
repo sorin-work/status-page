@@ -9,7 +9,7 @@
 <div class="table-wrap">
   <table>
     <thead>
-      <tr><th>Order</th><th>Name</th><th>Description</th><th></th></tr>
+      <tr><th>Order</th><th>Name</th><th>Description</th><th>Monitors</th><th></th></tr>
     </thead>
     <tbody>
       {{range .Data.Components}}
@@ -23,6 +23,7 @@
             <button type="submit" class="secondary">Save</button>
           </form>
         </td>
+        <td class="num">{{with index $.Data.Monitors .ID}}{{.}}{{else}}<span class="muted" title="Without monitors the component shows no data">0</span>{{end}}</td>
         <td>
           <form method="post" action="/admin/components/{{.ID}}/delete" class="inline" onsubmit="return confirm('Delete this component?')">
             <input type="hidden" name="csrf" value="{{$.User.CSRFToken}}">
