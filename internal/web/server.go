@@ -104,37 +104,29 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) routes() {
+	s.publicRoutes()
+	s.adminRoutes()
+	s.apiRoutes()
+}
+
+// publicRoutes are open to everyone.
+func (s *Server) publicRoutes() {
+	s.mux.HandleFunc("/", s.notFound)
 	s.mux.Handle("GET /static/", http.StripPrefix("/static/", staticHandler()))
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
-	s.mux.HandleFunc("/", s.notFound)
+
 	s.mux.HandleFunc("GET /{$}", s.handleStatusPage)
 	s.mux.HandleFunc("GET /incidents/{id}", s.handlePublicIncident)
 	s.mux.HandleFunc("GET /history", s.handleHistory)
-
 	s.mux.HandleFunc("GET /api/status", s.apiStatus)
-	s.mux.Handle("GET /api/monitors", s.apiAuth(s.apiListMonitors))
-	s.mux.Handle("POST /api/monitors", s.apiAuth(s.apiCreateMonitor))
-	s.mux.Handle("GET /api/monitors/{id}", s.apiAuth(s.apiGetMonitor))
-	s.mux.Handle("PUT /api/monitors/{id}", s.apiAuth(s.apiUpdateMonitor))
-	s.mux.Handle("DELETE /api/monitors/{id}", s.apiAuth(s.apiDeleteMonitor))
-	s.mux.Handle("POST /api/monitors/{id}/pause", s.apiAuth(s.apiPauseMonitor))
-	s.mux.Handle("POST /api/monitors/{id}/resume", s.apiAuth(s.apiResumeMonitor))
-	s.mux.Handle("GET /api/monitors/{id}/checks", s.apiAuth(s.apiListChecks))
-	s.mux.Handle("GET /api/monitors/{id}/uptime", s.apiAuth(s.apiUptime))
+}
 
-	s.mux.Handle("GET /api/components", s.apiAuth(s.apiListComponents))
-	s.mux.Handle("GET /api/maintenance", s.apiAuth(s.apiListMaintenance))
-	s.mux.Handle("POST /api/maintenance", s.apiAuth(s.apiCreateMaintenance))
-	s.mux.Handle("DELETE /api/maintenance/{id}", s.apiAuth(s.apiDeleteMaintenance))
-
-	s.mux.Handle("GET /api/incidents", s.apiAuth(s.apiListIncidents))
-	s.mux.Handle("POST /api/incidents", s.apiAuth(s.apiCreateIncident))
-	s.mux.Handle("GET /api/incidents/{id}", s.apiAuth(s.apiGetIncident))
-	s.mux.Handle("POST /api/incidents/{id}/updates", s.apiAuth(s.apiAddIncidentUpdate))
-
+// adminRoutes need a logged in admin; forms also need the CSRF token.
+func (s *Server) adminRoutes() {
 	s.mux.HandleFunc("GET /admin/login", s.handleLoginForm)
 	s.mux.HandleFunc("POST /admin/login", s.handleLogin)
 	s.mux.Handle("POST /admin/logout", s.admin(s.handleLogout))
+
 	s.mux.Handle("GET /admin", s.admin(s.handleDashboard))
 	s.mux.Handle("GET /admin/monitors/new", s.admin(s.handleNewMonitor))
 	s.mux.Handle("POST /admin/monitors", s.admin(s.handleCreateMonitor))
@@ -172,6 +164,30 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /admin/incidents", s.admin(s.handleCreateIncident))
 	s.mux.Handle("GET /admin/incidents/{id}", s.admin(s.handleIncidentDetail))
 	s.mux.Handle("POST /admin/incidents/{id}/updates", s.admin(s.handleAddIncidentUpdate))
+}
+
+// apiRoutes need the API token.
+func (s *Server) apiRoutes() {
+	s.mux.Handle("GET /api/monitors", s.apiAuth(s.apiListMonitors))
+	s.mux.Handle("POST /api/monitors", s.apiAuth(s.apiCreateMonitor))
+	s.mux.Handle("GET /api/monitors/{id}", s.apiAuth(s.apiGetMonitor))
+	s.mux.Handle("PUT /api/monitors/{id}", s.apiAuth(s.apiUpdateMonitor))
+	s.mux.Handle("DELETE /api/monitors/{id}", s.apiAuth(s.apiDeleteMonitor))
+	s.mux.Handle("POST /api/monitors/{id}/pause", s.apiAuth(s.apiPauseMonitor))
+	s.mux.Handle("POST /api/monitors/{id}/resume", s.apiAuth(s.apiResumeMonitor))
+	s.mux.Handle("GET /api/monitors/{id}/checks", s.apiAuth(s.apiListChecks))
+	s.mux.Handle("GET /api/monitors/{id}/uptime", s.apiAuth(s.apiUptime))
+
+	s.mux.Handle("GET /api/components", s.apiAuth(s.apiListComponents))
+
+	s.mux.Handle("GET /api/maintenance", s.apiAuth(s.apiListMaintenance))
+	s.mux.Handle("POST /api/maintenance", s.apiAuth(s.apiCreateMaintenance))
+	s.mux.Handle("DELETE /api/maintenance/{id}", s.apiAuth(s.apiDeleteMaintenance))
+
+	s.mux.Handle("GET /api/incidents", s.apiAuth(s.apiListIncidents))
+	s.mux.Handle("POST /api/incidents", s.apiAuth(s.apiCreateIncident))
+	s.mux.Handle("GET /api/incidents/{id}", s.apiAuth(s.apiGetIncident))
+	s.mux.Handle("POST /api/incidents/{id}/updates", s.apiAuth(s.apiAddIncidentUpdate))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
