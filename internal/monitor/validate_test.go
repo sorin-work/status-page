@@ -85,6 +85,7 @@ func TestValidateTCPRejects(t *testing.T) {
 		{"port zero", "target", func(m *Monitor) { m.Target = "db.internal:0" }},
 		{"named port", "target", func(m *Monitor) { m.Target = "db.internal:postgres" }},
 		{"keyword", "keyword", func(m *Monitor) { m.Keyword = "ok" }},
+		{"no redirects", "follow_redirects", func(m *Monitor) { m.NoRedirects = true }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

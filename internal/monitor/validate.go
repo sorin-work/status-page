@@ -91,6 +91,9 @@ func (m *Monitor) Validate() error {
 		if m.Keyword != "" {
 			errs["keyword"] = "only applies to HTTP monitors"
 		}
+		if m.NoRedirects {
+			errs["follow_redirects"] = "only applies to HTTP monitors"
+		}
 	} else {
 		if m.ExpectedStatus != 0 && (m.ExpectedStatus < 100 || m.ExpectedStatus > 599) {
 			errs["expected_status"] = "must be a valid HTTP status code"

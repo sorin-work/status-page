@@ -147,6 +147,16 @@ func TestAPICreateMonitorValidation(t *testing.T) {
 	}
 }
 
+func TestAPIRedirectSettingIsHTTPOnly(t *testing.T) {
+	srv, _ := newAPIServer(t)
+	rec := apiCall(t, srv, http.MethodPost, "/api/monitors", map[string]any{
+		"name": "db", "type": "tcp", "target": "db.internal:5432", "follow_redirects": false,
+	})
+	if rec.Code != http.StatusUnprocessableEntity || decode[apiError](t, rec).Fields["follow_redirects"] == "" {
+		t.Errorf("got %d %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestAPIUpdateAndDeleteMonitor(t *testing.T) {
 	srv, st := newAPIServer(t)
 	m := addMonitor(t, st, "old")
