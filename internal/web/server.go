@@ -114,6 +114,9 @@ func (s *Server) publicRoutes() {
 	s.mux.HandleFunc("/", s.notFound)
 	s.mux.Handle("GET /static/", http.StripPrefix("/static/", staticHandler()))
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
+	s.mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/static/favicon.svg", http.StatusMovedPermanently)
+	})
 
 	s.mux.HandleFunc("GET /{$}", s.handleStatusPage)
 	s.mux.HandleFunc("GET /incidents/{id}", s.handlePublicIncident)

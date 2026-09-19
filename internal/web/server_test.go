@@ -53,6 +53,16 @@ func TestStaticFiles(t *testing.T) {
 	}
 }
 
+func TestFavicon(t *testing.T) {
+	srv, _ := newTestServer(t)
+	if rec := get(t, srv, "/favicon.ico"); rec.Code != http.StatusMovedPermanently {
+		t.Errorf("favicon.ico: %d", rec.Code)
+	}
+	if rec := get(t, srv, "/static/favicon.svg"); rec.Code != http.StatusOK {
+		t.Errorf("favicon.svg: %d", rec.Code)
+	}
+}
+
 func TestUnknownPath(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := get(t, srv, "/nope")
