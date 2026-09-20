@@ -4,6 +4,11 @@
   <a class="button" href="/admin/incidents/new">New incident</a>
 </div>
 {{with .Data}}
+<div class="tabs" style="margin-bottom: 12px">
+  <a href="/admin/incidents"{{if eq .State ""}} class="active"{{end}}>All</a>
+  <a href="?state=open"{{if eq .State "open"}} class="active"{{end}}>Open</a>
+  <a href="?state=resolved"{{if eq .State "resolved"}} class="active"{{end}}>Resolved</a>
+</div>
 {{if .Incidents}}
 <div class="table-wrap">
   <table>
@@ -31,9 +36,9 @@
 </div>
 {{with .Pager}}{{if gt .Pages 1}}
 <div class="pagination">
-  {{if .HasPrev}}<a href="?page={{.Prev}}">&larr; Newer</a>{{end}}
+  {{if .HasPrev}}<a href="?state={{$.Data.State}}&amp;page={{.Prev}}">&larr; Newer</a>{{end}}
   <span class="muted">Page {{.Page}} of {{.Pages}}</span>
-  {{if .HasNext}}<a href="?page={{.Next}}">Older &rarr;</a>{{end}}
+  {{if .HasNext}}<a href="?state={{$.Data.State}}&amp;page={{.Next}}">Older &rarr;</a>{{end}}
 </div>
 {{end}}{{end}}
 {{else}}

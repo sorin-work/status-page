@@ -268,3 +268,19 @@ func (s *Store) LastAutomaticIncident(ctx context.Context, monitorID int64) (inc
 	}
 	return inc, err
 }
+
+// ListIncidentsByState pages through open (resolved=false) or resolved
+// incidents, newest first.
+func (s *Store) ListIncidentsByState(ctx context.Context, resolved bool, limit, offset int) ([]incident.Incident, int, error) {
+	cond := `i.status != 'resolved'`
+	if resolved {
+		cond = `i.status = 'resolved'`
+	}
+	var total int
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM incidents i WHERE `+cond).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	list, err := s.queryIncidents(ctx, `SELECT `+incidentColumns+` FROM incidents i WHERE `+cond+`
+		ORDER BY i.started_at DESC, i.id DESC LIMIT ? OFFSET ?`, limit, offset)
+	return list, total, err
+}

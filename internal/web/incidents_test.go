@@ -40,6 +40,27 @@ func TestIncidentList(t *testing.T) {
 	}
 }
 
+func TestIncidentListStateFilter(t *testing.T) {
+	srv, st := newTestServer(t)
+	createAdmin(t, st)
+	ctx := context.Background()
+	open, _ := st.CreateIncident(ctx, incident.Incident{Title: "Still broken", Status: incident.StatusInvestigating, Impact: incident.ImpactMinor}, "x")
+	done, _ := st.CreateIncident(ctx, incident.Incident{Title: "All fixed", Status: incident.StatusInvestigating, Impact: incident.ImpactMinor}, "x")
+	if _, err := st.AddIncidentUpdate(ctx, done.ID, incident.StatusResolved, "ok", time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	_ = open
+	c, _ := login(t, srv)
+	body := getWith(t, srv, "/admin/incidents?state=open", c).Body.String()
+	if !strings.Contains(body, "Still broken") || strings.Contains(body, "All fixed") {
+		t.Error("open filter")
+	}
+	body = getWith(t, srv, "/admin/incidents?state=resolved", c).Body.String()
+	if strings.Contains(body, "Still broken") || !strings.Contains(body, "All fixed") {
+		t.Error("resolved filter")
+	}
+}
+
 func TestCreateIncident(t *testing.T) {
 	srv, st := newTestServer(t)
 	createAdmin(t, st)

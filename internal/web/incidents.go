@@ -17,21 +17,38 @@ const incidentsPerPage = 25
 type incidentList struct {
 	Incidents []incident.Incident
 	Pager     pager
+	State     string
 }
 
 func (s *Server) handleIncidents(w http.ResponseWriter, r *http.Request) {
-	total, err := s.store.CountIncidents(r.Context())
+	state := r.URL.Query().Get("state")
+	var (
+		list  []incident.Incident
+		total int
+		err   error
+		pg    pager
+	)
+	switch state {
+	case "open", "resolved":
+		// Count first so the pager can clamp the page number.
+		_, total, err = s.store.ListIncidentsByState(r.Context(), state == "resolved", 1, 0)
+		if err == nil {
+			pg = newPager(r, total, incidentsPerPage)
+			list, _, err = s.store.ListIncidentsByState(r.Context(), state == "resolved", pg.PerPage, pg.Offset())
+		}
+	default:
+		state = ""
+		total, err = s.store.CountIncidents(r.Context())
+		if err == nil {
+			pg = newPager(r, total, incidentsPerPage)
+			list, err = s.store.ListIncidents(r.Context(), pg.PerPage, pg.Offset())
+		}
+	}
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	pg := newPager(r, total, incidentsPerPage)
-	list, err := s.store.ListIncidents(r.Context(), pg.PerPage, pg.Offset())
-	if err != nil {
-		s.serverError(w, r, err)
-		return
-	}
-	s.render(w, r, http.StatusOK, "incidents", page{Title: "Incidents", Nav: "incidents", Data: incidentList{Incidents: list, Pager: pg}})
+	s.render(w, r, http.StatusOK, "incidents", page{Title: "Incidents", Nav: "incidents", Data: incidentList{Incidents: list, Pager: pg, State: state}})
 }
 
 type incidentForm struct {
