@@ -81,6 +81,7 @@ func Demo(ctx context.Context, st *store.Store, opts Options) (bool, error) {
 		{"Checkout", monitor.Monitor{Name: "Checkout", Type: monitor.TypeHTTP, Target: target("/checkout"), Interval: time.Minute, Timeout: 10 * time.Second, Retries: 2}},
 		{"Search", monitor.Monitor{Name: "Search", Type: monitor.TypeHTTP, Target: target("/search"), Interval: time.Minute, Timeout: 5 * time.Second, Retries: 1}},
 		{"Database", monitor.Monitor{Name: "Database port", Type: monitor.TypeTCP, Target: tcpAddr, Interval: 30 * time.Second, Timeout: 3 * time.Second}},
+		{"", monitor.Monitor{Name: "Old shop URL redirects", Type: monitor.TypeHTTP, Target: target("/shop"), Interval: 10 * time.Minute, Timeout: 5 * time.Second, ExpectedStatus: 301, NoRedirects: true}},
 		{"", monitor.Monitor{Name: "Status endpoint (internal)", Type: monitor.TypeHTTP, Target: target("/status/204"), Interval: 5 * time.Minute, Timeout: 5 * time.Second, ExpectedStatus: 204}},
 	}
 	var created []monitor.Monitor

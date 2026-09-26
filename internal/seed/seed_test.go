@@ -36,7 +36,7 @@ func TestDemoSeedsOnce(t *testing.T) {
 	}
 	monitors, _ := st.ListMonitors(ctx)
 	components, _ := st.ListComponents(ctx)
-	if len(monitors) != 6 || len(components) != 5 {
+	if len(monitors) != 7 || len(components) != 5 {
 		t.Fatalf("%d monitors, %d components", len(monitors), len(components))
 	}
 	if hooks, _ := st.ListWebhooks(ctx, true); len(hooks) != 1 || hooks[0].URL != "http://demo-target:8081/webhooks" {

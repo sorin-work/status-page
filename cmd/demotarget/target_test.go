@@ -38,6 +38,7 @@ func TestEndpoints(t *testing.T) {
 		{"/status/503", http.StatusServiceUnavailable, "status 503"},
 		{"/status/42", http.StatusBadRequest, ""},
 		{"/healthz", http.StatusOK, "ok"},
+		{"/shop", http.StatusMovedPermanently, ""},
 	}
 	for _, tc := range cases {
 		rec := do(t, h, http.MethodGet, tc.path)

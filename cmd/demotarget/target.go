@@ -46,6 +46,10 @@ func (t *target) routes() http.Handler {
 	mux.HandleFunc("POST /webhooks", t.receiveWebhook)
 	mux.HandleFunc("GET /webhooks", t.listWebhooks)
 	mux.HandleFunc("GET /status/{code}", t.status)
+	mux.HandleFunc("GET /shop", func(w http.ResponseWriter, r *http.Request) {
+		// The old shop address, kept as a permanent redirect.
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+	})
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("ok\n"))
 	})
