@@ -17,6 +17,11 @@ services:
       DEMO_TARGET_URL: http://demo-target:8081
     volumes:
       - app-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       demo-target:
         condition: service_healthy
@@ -35,6 +40,9 @@ services:
     build: .
     command: ['demotarget']
     restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
     environment:
       WEBHOOK_SECRET: demo-webhook-secret
     healthcheck:
