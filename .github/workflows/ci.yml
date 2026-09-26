@@ -33,7 +33,11 @@ jobs:
         with:
           version: v2.11
 
-      - run: go test -race ./...
+      - name: Test
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1 >> "$GITHUB_STEP_SUMMARY"
 
       - run: go build ./...
 
