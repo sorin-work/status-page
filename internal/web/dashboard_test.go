@@ -70,7 +70,7 @@ func TestDashboardListsMonitorsWithUptime(t *testing.T) {
 	}
 	c, _ := login(t, srv)
 	body := getWith(t, srv, "/admin", c).Body.String()
-	for _, want := range []string{"checkout", "search", "75.00%", "no data", "1m"} {
+	for _, want := range []string{"checkout", "search", "75.00%", "no data", "1m", "<time datetime="} {
 		if !strings.Contains(body, want) {
 			t.Errorf("dashboard is missing %q", want)
 		}

@@ -79,8 +79,10 @@ func (s *Server) funcs() template.FuncMap {
 		"now":      s.now,
 		"version":  func() string { return version.Version },
 		"nl2br":    nl2br,
-		"ago": func(t time.Time) string {
-			return formatAgo(s.now().Sub(t))
+		"ago": func(t time.Time) template.HTML {
+			// The exact time is shown on hover.
+			return template.HTML(fmt.Sprintf(`<time datetime="%s" title="%s">%s</time>`,
+				t.UTC().Format(time.RFC3339), template.HTMLEscapeString(t.In(s.loc).Format("2006-01-02 15:04:05 MST")), formatAgo(s.now().Sub(t))))
 		},
 		"datetime": func(t time.Time) string {
 			if t.IsZero() {
