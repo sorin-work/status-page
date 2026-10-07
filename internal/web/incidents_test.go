@@ -82,7 +82,7 @@ func TestCreateIncident(t *testing.T) {
 		t.Errorf("component not saved: %+v", list[0])
 	}
 	body := getWith(t, srv, rec.Header().Get("Location"), c).Body.String()
-	for _, want := range []string{"Payments delayed", "identified", "Our payment provider is degraded."} {
+	for _, want := range []string{"Payments delayed", "identified", "Our payment provider is degraded.", "View public page"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("detail page is missing %q", want)
 		}

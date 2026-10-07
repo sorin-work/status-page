@@ -39,3 +39,28 @@ func TestAPIStatusIsPublic(t *testing.T) {
 		t.Errorf("incidents/maintenance = %+v / %+v", body.Incidents, body.Maintenance)
 	}
 }
+
+func TestAPIStatusDuringMaintenance(t *testing.T) {
+	srv, st := newAPIServer(t)
+	ctx := context.Background()
+	comp, _ := st.CreateComponent(ctx, store.Component{Name: "Database"})
+	m := addMonitor(t, st, "db")
+	m.ComponentID = comp.ID
+	if _, err := st.UpdateMonitor(ctx, m); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetMonitorStatus(ctx, m.ID, "down"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.CreateMaintenance(ctx, maintenance.Window{Title: "Upgrade", ComponentID: comp.ID, StartsAt: time.Now().Add(-time.Minute), EndsAt: time.Now().Add(time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+	body := decode[struct {
+		Status      string
+		Components  []apiComponentStatus
+		Maintenance []apiMaintenance
+	}](t, get(t, srv, "/api/status"))
+	if body.Status != "maintenance" || body.Components[0].Status != "maintenance" || !body.Maintenance[0].Active {
+		t.Errorf("status during maintenance = %+v", body)
+	}
+}
