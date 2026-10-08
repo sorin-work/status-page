@@ -180,3 +180,30 @@ func TestNoRetryOnClientError(t *testing.T) {
 		t.Errorf("%d attempts, want 1", len(log))
 	}
 }
+
+// The scheduler publishes from its workers, so a dead receiver must never
+// hold up checks.
+func TestPublishNeverBlocks(t *testing.T) {
+	st := newStore(t)
+	ctx := context.Background()
+	if _, err := st.CreateWebhook(ctx, store.Webhook{Name: "x", URL: "http://127.0.0.1:1", Secret: "k", Enabled: true}); err != nil {
+		t.Fatal(err)
+	}
+	d := NewDispatcher(st, slog.New(slog.DiscardHandler))
+	// No workers: the queue fills up and further events are dropped.
+	done := make(chan struct{})
+	go func() {
+		for range QueueSize + 10 {
+			d.Publish(ctx, Event{Type: EventTest})
+		}
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Publish blocked on a full queue")
+	}
+	if len(d.queue) != QueueSize {
+		t.Errorf("queue holds %d deliveries, want %d", len(d.queue), QueueSize)
+	}
+}
