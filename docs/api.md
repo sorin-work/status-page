@@ -13,6 +13,29 @@ curl -H "Authorization: Bearer $API_TOKEN" http://localhost:4417/api/monitors
 
 Without `API_TOKEN` the protected endpoints answer `401`.
 
+## Examples
+
+```sh
+export API=http://localhost:4417/api TOKEN=demo-api-token-change-me
+
+# Create a monitor on the API component.
+curl -s -X POST "$API/monitors" -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"Orders API","target":"https://orders.example.com/health","keyword":"ok","retries":2,"component_id":2}'
+
+# Pause it around a deploy and resume afterwards.
+curl -s -X POST "$API/monitors/8/pause" -H "Authorization: Bearer $TOKEN"
+curl -s -X POST "$API/monitors/8/resume" -H "Authorization: Bearer $TOKEN"
+
+# Open an incident and resolve it later.
+curl -s -X POST "$API/incidents" -H "Authorization: Bearer $TOKEN" \
+  -d '{"title":"Delayed emails","impact":"minor","message":"Outgoing emails are queued."}'
+curl -s -X POST "$API/incidents/5/updates" -H "Authorization: Bearer $TOKEN" \
+  -d '{"status":"resolved","message":"The queue has been sent."}'
+
+# Public summary, no token needed.
+curl -s "$API/status"
+```
+
 ## Errors
 
 Errors have an `error` message and, for validation problems, a `fields`
