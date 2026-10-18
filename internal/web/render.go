@@ -78,6 +78,7 @@ func (s *Server) funcs() template.FuncMap {
 		"duration": formatDuration,
 		"now":      s.now,
 		"version":  func() string { return version.Version },
+		"zone":     func() string { return s.loc.String() },
 		"nl2br":    nl2br,
 		"ago": func(t time.Time) template.HTML {
 			// The exact time is shown on hover.
