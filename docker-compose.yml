@@ -44,6 +44,8 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # The image sets LISTEN_ADDR for the main server.
+      LISTEN_ADDR: ':8081'
       WEBHOOK_SECRET: demo-webhook-secret
     healthcheck:
       test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://localhost:8081/healthz']
