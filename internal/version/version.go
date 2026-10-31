@@ -4,4 +4,4 @@
 package version
 
 // Version is the release this binary was built from.
-var Version = "dev"
+var Version = "1.0.0"

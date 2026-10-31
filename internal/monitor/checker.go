@@ -33,7 +33,7 @@ func NewChecker() *NetChecker {
 	return &NetChecker{
 		Client:    &http.Client{},
 		Dialer:    &net.Dialer{},
-		UserAgent: "status-page/0.1",
+		UserAgent: "status-page/1.0",
 		Now:       time.Now,
 	}
 }

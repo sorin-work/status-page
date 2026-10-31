@@ -10,7 +10,7 @@ check history.
   why the endpoint is slow.
 - **`unexpected status 403`** or **`expected status 200, got 403`**: the
   target blocks the check. Some firewalls and CDNs block unknown clients;
-  allow the `status-page/0.1` user agent or the server address.
+  allow the `status-page/1.0` user agent or the server address.
 - **`keyword "..." not found in response`**: the keyword is case
   sensitive and only the first 1 MiB of the body is searched. Pages that
   build their content with JavaScript do not contain it in the HTML.

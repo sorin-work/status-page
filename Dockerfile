@@ -5,7 +5,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-ARG VERSION=dev
+ARG VERSION=1.0.0
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/sorin-work/status-page/internal/version.Version=${VERSION}" -o /out/statuspage ./cmd/statuspage \
  && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/demotarget ./cmd/demotarget
 
