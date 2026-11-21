@@ -157,6 +157,7 @@ docs/              API, webhooks, configuration, architecture
 - [Configuration](docs/configuration.md)
 - [Architecture](docs/architecture.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [Roadmap](ROADMAP.md): ideas for later, nothing promised
 
 ## License
 
